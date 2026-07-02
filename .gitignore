@@ -1,0 +1,19 @@
+# Build outputs
+bin/
+obj/
+*.user
+
+# Secrets — NEVER commit
+appsettings.Production.json
+.env
+*.pfx
+secrets.json
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

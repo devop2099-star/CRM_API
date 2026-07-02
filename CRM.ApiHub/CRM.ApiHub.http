@@ -1,0 +1,6 @@
+@CRM.ApiHub_HostAddress = http://localhost:5068
+
+GET {{CRM.ApiHub_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
