@@ -66,15 +66,17 @@ dotnet run --project CRM.WebFrontend/CRM.WebFrontend.csproj
 
 ## 🧪 Pruebas de Autenticación (Swagger)
 
-Para comprobar de forma rápida el funcionamiento del endpoint de Login con JWT sin necesidad de conocer o comprometer las contraseñas reales de los usuarios pre-existentes en la base de datos:
+Para comprobar el funcionamiento del endpoint de Login con JWT utilizando cuentas reales de la base de datos (por ejemplo, `cnaranjo`):
 
-1. Ve a [http://localhost:5068/swagger](http://localhost:5068/swagger).
-2. Abre el endpoint **`POST /api/auth/login`**.
-3. Envía el siguiente JSON de prueba:
+1. Modifica la contraseña de algún usuario en la base de datos actualizando su columna `password_hash` con un hash de BCrypt conocido (por ejemplo, el hash para la contraseña `Password123!` es `$2a$11$lqV.PEBI3RKFESCWTKFuqOpeERkx.axXWZB5KfL9NPNp4w5k7Yuoq`).
+2. Ve a [http://localhost:5068/swagger](http://localhost:5068/swagger).
+3. Abre el endpoint **`POST /api/auth/login`**.
+4. Envía la solicitud con el nombre de usuario y su respectiva contraseña en texto plano:
    ```json
    {
-     "username": "testuser",
+     "username": "cnaranjo",
      "password": "Password123!"
    }
    ```
-4. El servidor responderá con `200 OK` y entregará el token JWT firmado de forma exitosa.
+5. El servidor responderá con `200 OK` y entregará el token JWT firmado de forma exitosa.
+

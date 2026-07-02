@@ -16,22 +16,8 @@ public class UserRepository : IUserRepository
         _factory = factory;
     }
 
-    private static readonly string TestUserPasswordHash = BCrypt.Net.BCrypt.HashPassword("Password123!");
-
     public async Task<User?> GetByUsernameAsync(string username, CancellationToken ct = default)
     {
-        if (string.Equals(username, "testuser", StringComparison.OrdinalIgnoreCase))
-        {
-            return new User
-            {
-                IdUser = 99999,
-                Username = "testuser",
-                PasswordHash = TestUserPasswordHash,
-                DateCreated = DateTime.UtcNow,
-                State = 1
-            };
-        }
-
         using var conn = _factory.CreateConnection();
         var sql = @"
             SELECT 
