@@ -1,4 +1,8 @@
 using System.Text;
+using CRM.ApiHub.Application.Interfaces;
+using CRM.ApiHub.Application.UseCases.Auth;
+using CRM.ApiHub.Domain.Repositories;
+using CRM.ApiHub.Infrastructure.Authentication;
 using CRM.ApiHub.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -16,8 +20,14 @@ public static class DependencyInjection
         // DB
         services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>();
 
-        // Repositories (TODO: Registrar repositorios concretos en fases posteriores)
-        // services.AddScoped<ICustomerRepository, CustomerRepository>();
+        // Repositories
+        services.AddScoped<IUserRepository, UserRepository>();
+
+        // Services
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+
+        // Use Cases
+        services.AddScoped<LoginUseCase>();
 
         // JWT
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
