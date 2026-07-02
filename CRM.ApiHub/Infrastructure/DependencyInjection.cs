@@ -1,4 +1,5 @@
 using System.Text;
+using CRM.ApiHub.Domain.Repositories; // <-- Agrega esta línea
 using CRM.ApiHub.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -17,7 +18,8 @@ public static class DependencyInjection
         services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>();
 
         // Repositories (TODO: Registrar repositorios concretos en fases posteriores)
-        // services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<ICampaignRepository, CampaignRepository>(); // <-- Tu nuevo código
+        services.AddScoped<ICatalogRepository, CatalogRepository>();   // <-- Tu nuevo código
 
         // JWT
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
