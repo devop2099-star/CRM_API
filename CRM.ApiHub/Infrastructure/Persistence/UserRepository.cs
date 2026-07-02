@@ -50,21 +50,4 @@ public class UserRepository : IUserRepository
             new CommandDefinition(sql, new { Username = username }, cancellationToken: ct)
         );
     }
-
-    public async Task CreateAsync(User user, CancellationToken ct = default)
-    {
-        using var conn = _factory.CreateConnection();
-        var sql = @"
-            INSERT INTO user_service.users (username, password_hash, date_created, state) 
-            VALUES (@Username, @PasswordHash, @DateCreated, @State);";
-
-        await conn.ExecuteAsync(
-            new CommandDefinition(sql, new { 
-                Username = user.Username, 
-                PasswordHash = user.PasswordHash, 
-                DateCreated = user.DateCreated ?? DateTime.UtcNow, 
-                State = user.State ?? (short)1 
-            }, cancellationToken: ct)
-        );
-    }
 }
