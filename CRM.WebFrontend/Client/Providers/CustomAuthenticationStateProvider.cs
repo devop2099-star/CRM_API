@@ -1,19 +1,16 @@
-using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.JSInterop;
 
 namespace CRM.WebFrontend.Client.Providers;
 
 public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
-    private readonly IJSRuntime _jsRuntime;
     private readonly HttpClient _httpClient;
 
-    public CustomAuthenticationStateProvider(IJSRuntime jsRuntime, HttpClient httpClient)
+    public CustomAuthenticationStateProvider(HttpClient httpClient)
     {
-        _jsRuntime = jsRuntime;
         _httpClient = httpClient;
     }
 
@@ -21,91 +18,47 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     {
         try
         {
-            var token = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
-
-            if (string.IsNullOrWhiteSpace(token))
+            // Consultamos al BFF en lugar de leer el localStorage. El HttpClient incluirá la cookie automáticamente gracias al CookieHandler.
+            var response = await _httpClient.GetAsync("api/auth/userinfo");
+            
+            if (response.IsSuccessStatusCode)
             {
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                var claimsDict = await response.Content.ReadFromJsonAsync<Dictionary<string, JsonElement>>();
+                if (claimsDict != null)
+                {
+                    var claims = new List<Claim>();
+                    foreach (var kvp in claimsDict)
+                    {
+                        var claimType = kvp.Key == "role" ? ClaimTypes.Role : 
+                                        kvp.Key == "unique_name" ? ClaimTypes.Name : kvp.Key;
+                                        
+                        if (kvp.Value.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var item in kvp.Value.EnumerateArray())
+                            {
+                                claims.Add(new Claim(claimType, item.ToString()));
+                            }
+                        }
+                        else
+                        {
+                            claims.Add(new Claim(claimType, kvp.Value.ToString()));
+                        }
+                    }
+                    var identity = new ClaimsIdentity(claims, "BffAuth");
+                    return new AuthenticationState(new ClaimsPrincipal(identity));
+                }
             }
-
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-            var identity = new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt");
-            var user = new ClaimsPrincipal(identity);
-
-            return new AuthenticationState(user);
         }
         catch
         {
-            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
-        }
-    }
-
-    public async Task MarkUserAsAuthenticated(string token)
-    {
-        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "authToken", token);
-        
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        
-        var authenticatedUser = new ClaimsPrincipal(new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt"));
-        var authState = Task.FromResult(new AuthenticationState(authenticatedUser));
-        
-        NotifyAuthenticationStateChanged(authState);
-    }
-
-    public async Task MarkUserAsLoggedOut()
-    {
-        await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "authToken");
-        _httpClient.DefaultRequestHeaders.Authorization = null;
-        
-        var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
-        var authState = Task.FromResult(new AuthenticationState(anonymousUser));
-        
-        NotifyAuthenticationStateChanged(authState);
-    }
-
-    private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
-    {
-        var claims = new List<Claim>();
-        var payload = jwt.Split('.')[1];
-        var jsonBytes = ParseBase64WithoutPadding(payload);
-        var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
-
-        if (keyValuePairs != null)
-        {
-            foreach (var kvp in keyValuePairs)
-            {
-                if (kvp.Value is JsonElement element)
-                {
-                    if (element.ValueKind == JsonValueKind.Array)
-                    {
-                        foreach (var item in element.EnumerateArray())
-                        {
-                            claims.Add(new Claim(kvp.Key, item.ToString()));
-                        }
-                    }
-                    else
-                    {
-                        claims.Add(new Claim(kvp.Key, element.ToString()));
-                    }
-                }
-                else
-                {
-                    claims.Add(new Claim(kvp.Key, kvp.Value?.ToString() ?? string.Empty));
-                }
-            }
+            // Fallback silencioso: no está autenticado o la red falló.
         }
 
-        return claims;
+        return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
     }
 
-    private byte[] ParseBase64WithoutPadding(string base64)
+    public void NotifyUserAuthentication()
     {
-        switch (base64.Length % 4)
-        {
-            case 2: base64 += "=="; break;
-            case 3: base64 += "="; break;
-        }
-        return Convert.FromBase64String(base64);
+        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
     }
 }

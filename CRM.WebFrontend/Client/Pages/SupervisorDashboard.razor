@@ -1,0 +1,17 @@
+@page "/supervisor"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize(Roles = "SUPERVISOR")]
+
+<PageTitle>Dashboard Supervisor</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h3" Color="Color.Primary" GutterBottom="true">Panel de Control: Supervisor</MudText>
+    
+    <AuthorizeView>
+        <Authorized>
+            <MudAlert Severity="Severity.Success">Bienvenido, @context.User.Identity?.Name. ¡Tu rol es SUPERVISOR y estás autenticado mediante Cookies HttpOnly!</MudAlert>
+        </Authorized>
+    </AuthorizeView>
+</MudContainer>
