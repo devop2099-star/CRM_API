@@ -1,6 +1,6 @@
-using CRM.WebFrontend.Components;
+using CRM.WebFrontend.Server.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using CRM.WebFrontend.Providers;
+using CRM.WebFrontend.Client.Providers;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);

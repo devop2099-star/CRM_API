@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 
-namespace CRM.WebFrontend.Providers;
+namespace CRM.WebFrontend.Client.Providers;
 
 public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
