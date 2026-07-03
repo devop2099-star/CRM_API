@@ -43,8 +43,7 @@ public class CatalogRepository : ICatalogRepository
     public async Task<IEnumerable<dynamic>> GetCurrenciesAsync()
     {
         using var connection = _connectionFactory.CreateConnection();
-        // Como no había un modelo explícito para Currency, retornamos dynamic (que Dapper parsea sin problema)
-        const string sql = "SELECT * FROM currency WHERE is_active = true;";
+        const string sql = "SELECT * FROM sales_service.currency WHERE is_active = true;";
         return await connection.QueryAsync<dynamic>(sql);
     }
 }
