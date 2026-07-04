@@ -40,12 +40,16 @@ public class RefreshTokenUseCase
         // Rotación de Refresh Token (revocar el anterior)
         _refreshTokenStore.RevokeToken(request.RefreshToken);
 
+        // Obtener el rol del usuario
+        var userDetail = await _userRepository.GetUserDetailByIdAsync(user.IdUser, ct);
+        var role = userDetail?.RoleName;
+
         // Generar nuevos tokens
-        var newAccessToken = _tokenGenerator.GenerateToken(user);
+        var newAccessToken = _tokenGenerator.GenerateToken(user, role);
         var newRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var expiry = DateTime.UtcNow.AddDays(7);
         _refreshTokenStore.SaveToken(newRefreshToken, user.IdUser, expiry);
 
-        return new LoginResponse(newAccessToken, newRefreshToken, user.Username);
+        return new LoginResponse(newAccessToken, newRefreshToken, user.Username, role);
     }
 }
