@@ -29,7 +29,7 @@ public class UserRepository : IUserRepository
                 last_activity as LastActivity, 
                 fingerprint, 
                 state 
-            FROM user_service.users 
+            FROM users 
             WHERE username = @Username;";
 
         return await conn.QueryFirstOrDefaultAsync<User>(
