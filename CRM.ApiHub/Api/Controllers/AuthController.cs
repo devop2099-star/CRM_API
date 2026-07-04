@@ -15,15 +15,18 @@ public class AuthController : ControllerBase
     private readonly LoginUseCase _loginUseCase;
     private readonly MeUseCase _meUseCase;
     private readonly RefreshTokenUseCase _refreshTokenUseCase;
+    private readonly CRM.ApiHub.Application.Interfaces.IJwtTokenGenerator _tokenGenerator;
 
     public AuthController(
         LoginUseCase loginUseCase,
         MeUseCase meUseCase,
-        RefreshTokenUseCase refreshTokenUseCase)
+        RefreshTokenUseCase refreshTokenUseCase,
+        CRM.ApiHub.Application.Interfaces.IJwtTokenGenerator tokenGenerator)
     {
         _loginUseCase = loginUseCase;
         _meUseCase = meUseCase;
         _refreshTokenUseCase = refreshTokenUseCase;
+        _tokenGenerator = tokenGenerator;
     }
 
     [HttpPost("login")]

@@ -40,14 +40,18 @@ public class LoginUseCase
             return null;
         }
 
-        // 3. Generar token JWT válido
-        var token = _tokenGenerator.GenerateToken(user);
+        // 3. Obtener el rol del usuario
+        var userDetail = await _userRepository.GetUserDetailByIdAsync(user.IdUser, ct);
+        var role = userDetail?.RoleName;
 
-        // 4. Generar Refresh Token
+        // 4. Generar token JWT válido
+        var token = _tokenGenerator.GenerateToken(user, role);
+
+        // 5. Generar Refresh Token
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var expiry = DateTime.UtcNow.AddDays(7);
         _refreshTokenStore.SaveToken(refreshToken, user.IdUser, expiry);
 
-        return new LoginResponse(token, refreshToken, user.Username);
+        return new LoginResponse(token, refreshToken, user.Username, role);
     }
 }

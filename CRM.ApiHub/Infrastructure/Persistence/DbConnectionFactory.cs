@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Data;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace CRM.ApiHub.Infrastructure.Persistence;
@@ -12,10 +13,12 @@ public interface IDbConnectionFactory
 
 public class NpgsqlConnectionFactory : IDbConnectionFactory
 {
+    private readonly ILogger<NpgsqlConnectionFactory> _logger;
     private readonly string _connectionString;
     
-    public NpgsqlConnectionFactory(IConfiguration config)
+    public NpgsqlConnectionFactory(IConfiguration config, ILogger<NpgsqlConnectionFactory> logger)
     {
+        _logger = logger;
         var rawConnectionString = config.GetConnectionString("DefaultConnection") 
             ?? throw new ArgumentNullException(nameof(config), "La cadena de conexión 'DefaultConnection' no está configurada.");
             
@@ -74,10 +77,11 @@ public class NpgsqlConnectionFactory : IDbConnectionFactory
                 }
             }
         }
-        catch
+        catch (System.Exception ex)
         {
             // En caso de error (ej. migración o db caída temporalmente en arranque),
-            // se continúa con la cadena descifrada original.
+            // se continúa con la cadena descifrada original pero registrando la excepción.
+            _logger.LogError(ex, "Error al intentar obtener los esquemas de la base de datos en el arranque de NpgsqlConnectionFactory. Se continuará con la cadena descifrada original.");
         }
         
         _connectionString = decrypted;

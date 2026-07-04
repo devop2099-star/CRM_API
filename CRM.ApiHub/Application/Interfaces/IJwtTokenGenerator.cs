@@ -4,5 +4,5 @@ namespace CRM.ApiHub.Application.Interfaces;
 
 public interface IJwtTokenGenerator
 {
-    string GenerateToken(User user);
+    string GenerateToken(User user, string? roleName);
 }
