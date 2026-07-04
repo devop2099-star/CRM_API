@@ -28,7 +28,7 @@ public class PreSaleController : ControllerBase
     public async Task<IActionResult> Create([FromBody] LeadPreSale preSale)
     {
         var id = await _repository.CreateAsync(preSale);
-        return CreatedAtAction(nameof(GetByUser), new { userId = preSale.UserId }, new { id });
+        return CreatedAtAction(nameof(GetByUser), new { userId = preSale.AssignedUserId }, new { id });
     }
 
     // POST /presales/{id}/calls
