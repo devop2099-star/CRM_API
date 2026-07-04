@@ -1,3 +1,5 @@
+using System;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using CRM.ApiHub.Application.DTOs;
@@ -10,11 +12,16 @@ public class LoginUseCase
 {
     private readonly IUserRepository _userRepository;
     private readonly IJwtTokenGenerator _tokenGenerator;
+    private readonly IRefreshTokenStore _refreshTokenStore;
 
-    public LoginUseCase(IUserRepository userRepository, IJwtTokenGenerator tokenGenerator)
+    public LoginUseCase(
+        IUserRepository userRepository, 
+        IJwtTokenGenerator tokenGenerator,
+        IRefreshTokenStore refreshTokenStore)
     {
         _userRepository = userRepository;
         _tokenGenerator = tokenGenerator;
+        _refreshTokenStore = refreshTokenStore;
     }
 
     public async Task<LoginResponse?> ExecuteAsync(LoginRequest request, CancellationToken ct = default)
@@ -36,6 +43,11 @@ public class LoginUseCase
         // 3. Generar token JWT válido
         var token = _tokenGenerator.GenerateToken(user);
 
-        return new LoginResponse(token, user.Username);
+        // 4. Generar Refresh Token
+        var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        var expiry = DateTime.UtcNow.AddDays(7);
+        _refreshTokenStore.SaveToken(refreshToken, user.IdUser, expiry);
+
+        return new LoginResponse(token, refreshToken, user.Username);
     }
 }
