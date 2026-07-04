@@ -17,6 +17,9 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration config)
     {
+        // Configuración de Dapper para mapear snake_case (db) a PascalCase (C#)
+        Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
+
         // DB
         services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>();
 
@@ -25,13 +28,16 @@ public static class DependencyInjection
         services.AddScoped<ICampaignRepository, CampaignRepository>();
         services.AddScoped<ICatalogRepository, CatalogRepository>();
 
-        // Services
+        // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
         
         // Use Cases
         services.AddScoped<LoginUseCase>();
+        services.AddScoped<MeUseCase>();
+        services.AddScoped<RefreshTokenUseCase>();
 
-        // JWT
+        // JWT Authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options => {
                 options.TokenValidationParameters = new TokenValidationParameters 

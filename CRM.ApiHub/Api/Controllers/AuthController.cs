@@ -1,9 +1,9 @@
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using CRM.ApiHub.Application.DTOs;
 using CRM.ApiHub.Application.UseCases.Auth;
-using CRM.ApiHub.Domain.Entities;
-using CRM.ApiHub.Domain.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.ApiHub.Api.Controllers;
@@ -13,10 +13,17 @@ namespace CRM.ApiHub.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly LoginUseCase _loginUseCase;
+    private readonly MeUseCase _meUseCase;
+    private readonly RefreshTokenUseCase _refreshTokenUseCase;
 
-    public AuthController(LoginUseCase loginUseCase)
+    public AuthController(
+        LoginUseCase loginUseCase,
+        MeUseCase meUseCase,
+        RefreshTokenUseCase refreshTokenUseCase)
     {
         _loginUseCase = loginUseCase;
+        _meUseCase = meUseCase;
+        _refreshTokenUseCase = refreshTokenUseCase;
     }
 
     [HttpPost("login")]
@@ -26,6 +33,42 @@ public class AuthController : ControllerBase
         if (response == null)
         {
             return Unauthorized(new { message = "Nombre de usuario o contraseña incorrectos." });
+        }
+        return Ok(response);
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> Me()
+    {
+        // El claim de ID de usuario puede venir mapeado como NameIdentifier o directamente como "sub"
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
+        if (userIdClaim == null || !long.TryParse(userIdClaim.Value, out long userId))
+        {
+            return Unauthorized(new { message = "Usuario no autorizado o token inválido." });
+        }
+
+        var userDetail = await _meUseCase.ExecuteAsync(userId);
+        if (userDetail == null)
+        {
+            return NotFound(new { message = "Usuario no encontrado." });
+        }
+
+        return Ok(new
+        {
+            nombre = userDetail.Username,
+            rol = userDetail.RoleName,
+            campanaAsignada = userDetail.CampaignName
+        });
+    }
+
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        var response = await _refreshTokenUseCase.ExecuteAsync(request);
+        if (response == null)
+        {
+            return Unauthorized(new { message = "Token de refresco inválido o expirado." });
         }
         return Ok(response);
     }
