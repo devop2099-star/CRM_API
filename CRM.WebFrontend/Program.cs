@@ -9,8 +9,9 @@ using Yarp.ReverseProxy.Transforms;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+var razorBuilder = builder.Services.AddRazorComponents();
+razorBuilder.AddInteractiveServerComponents();
+razorBuilder.AddInteractiveWebAssemblyComponents();
 
 // Add HttpClient for calling the backend API
 builder.Services.AddHttpClient("BackendApi", client =>
@@ -34,6 +35,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, CRM.WebFrontend.Providers.PersistingServerAuthenticationStateProvider>();
 
 // Configure YARP with Request Transformation to automatically inject the Bearer Token
 builder.Services.AddReverseProxy()
@@ -180,6 +182,8 @@ app.MapReverseProxy();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddInteractiveWebAssemblyRenderMode()
+    .AddAdditionalAssemblies(typeof(CRM.WebFrontend.Client._Imports).Assembly);
 
 app.Run();
