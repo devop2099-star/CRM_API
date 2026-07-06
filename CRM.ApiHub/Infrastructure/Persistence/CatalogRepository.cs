@@ -31,19 +31,19 @@ public class CatalogRepository : ICatalogRepository
     public async Task<IEnumerable<Product>> GetProductsAsync(int idCmpg)
     {
         using var connection = _connectionFactory.CreateConnection();
-        // Asumimos una tabla de unión, muy común para N:M entre campañas y productos
         const string sql = @"
             SELECT p.* FROM product p
-            INNER JOIN campaign_product cp ON p.id = cp.product_id
+            INNER JOIN campaign_service.campaign_product cp ON p.id = cp.product_id
             WHERE cp.campaign_id = @IdCampaign AND p.is_active = true;";
             
         return await connection.QueryAsync<Product>(sql, new { IdCampaign = idCmpg });
     }
 
-    public async Task<IEnumerable<dynamic>> GetCurrenciesAsync()
+   public async Task<IEnumerable<Currency>> GetCurrenciesAsync()
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = "SELECT * FROM sales_service.currency WHERE is_active = true;";
-        return await connection.QueryAsync<dynamic>(sql);
+        
+        return await connection.QueryAsync<Currency>(sql);
     }
 }

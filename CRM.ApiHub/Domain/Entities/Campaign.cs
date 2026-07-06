@@ -3,12 +3,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRM.ApiHub.Domain.Entities;
 
-[Table("campaign")]
+[Table("campaign", Schema = "campaign_service")] 
 public class Campaign
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("id")]
+    [Column("id_cmpg")] 
     public int Id { get; set; }
 
     [Column("name")]
