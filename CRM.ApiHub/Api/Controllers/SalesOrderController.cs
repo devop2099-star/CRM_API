@@ -1,0 +1,102 @@
+using System;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
+using CRM.ApiHub.Application.DTOs;
+using CRM.ApiHub.Application.UseCases.SalesOrders;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace CRM.ApiHub.Api.Controllers;
+
+[Authorize]
+[ApiController]
+[Route("api/orders")]
+public class SalesOrderController : ControllerBase
+{
+    private readonly GetSalesOrdersUseCase _getSalesOrdersUseCase;
+    private readonly GetSalesOrderByIdUseCase _getSalesOrderByIdUseCase;
+    private readonly CreateSalesOrderUseCase _createSalesOrderUseCase;
+    private readonly UpdateSalesOrderStatusUseCase _updateSalesOrderStatusUseCase;
+
+    public SalesOrderController(
+        GetSalesOrdersUseCase getSalesOrdersUseCase,
+        GetSalesOrderByIdUseCase getSalesOrderByIdUseCase,
+        CreateSalesOrderUseCase createSalesOrderUseCase,
+        UpdateSalesOrderStatusUseCase updateSalesOrderStatusUseCase)
+    {
+        _getSalesOrdersUseCase = getSalesOrdersUseCase;
+        _getSalesOrderByIdUseCase = getSalesOrderByIdUseCase;
+        _createSalesOrderUseCase = createSalesOrderUseCase;
+        _updateSalesOrderStatusUseCase = updateSalesOrderStatusUseCase;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetOrders(
+        [FromQuery] long? userId,
+        [FromQuery] long? statusId,
+        [FromQuery] long? campaignId,
+        [FromQuery] DateTime? dateFrom,
+        [FromQuery] DateTime? dateTo,
+        CancellationToken ct)
+    {
+        try
+        {
+            var orders = await _getSalesOrdersUseCase.ExecuteAsync(userId, statusId, campaignId, dateFrom, dateTo, ct);
+            return Ok(orders);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al obtener órdenes.", details = ex.Message });
+        }
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetOrderById(long id, CancellationToken ct)
+    {
+        var order = await _getSalesOrderByIdUseCase.ExecuteAsync(id, ct);
+        if (order == null)
+        {
+            return NotFound(new { message = "Orden de venta no encontrada." });
+        }
+        return Ok(order);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateOrder([FromBody] SalesOrderCreateDto dto, CancellationToken ct)
+    {
+        try
+        {
+            var createdOrder = await _createSalesOrderUseCase.ExecuteAsync(dto, ct);
+            return CreatedAtAction(nameof(GetOrderById), new { id = createdOrder.IdOrder }, createdOrder);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = "Error al crear orden de venta.", details = ex.Message });
+        }
+    }
+
+    [HttpPatch("{id:long}/status")]
+    public async Task<IActionResult> UpdateOrderStatus(long id, [FromBody] SalesOrderUpdateStatusDto dto, CancellationToken ct)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
+        if (userIdClaim == null || !long.TryParse(userIdClaim.Value, out long actorId))
+        {
+            return Unauthorized(new { message = "Usuario no autorizado." });
+        }
+
+        try
+        {
+            var success = await _updateSalesOrderStatusUseCase.ExecuteAsync(id, dto, actorId, ct);
+            if (!success)
+            {
+                return NotFound(new { message = "Orden de venta no encontrada." });
+            }
+            return Ok(new { message = "Estado de orden de venta actualizado correctamente." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al actualizar estado de la orden.", details = ex.Message });
+        }
+    }
+}

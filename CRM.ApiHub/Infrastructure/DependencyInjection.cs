@@ -2,6 +2,7 @@ using System.Text;
 using CRM.ApiHub.Application.Interfaces;
 using CRM.ApiHub.Application.UseCases.Auth;
 using CRM.ApiHub.Application.UseCases.Leads;
+using CRM.ApiHub.Application.UseCases.SalesOrders;
 using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Infrastructure.Authentication;
 using CRM.ApiHub.Infrastructure.Persistence;
@@ -29,9 +30,15 @@ public static class DependencyInjection
         services.AddScoped<ICampaignRepository, CampaignRepository>();
         services.AddScoped<ICatalogRepository, CatalogRepository>();
         services.AddScoped<IPreSaleRepository, PreSaleRepository>();
+<<<<<<< HEAD
+        services.AddScoped<IPermissionService, PermissionService>(); // <-- TU NUEVA LÍNEA AGREGADA CORRECTAMENTE
+        services.AddScoped<ILeadRepository, LeadRepository>();
+        services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
+=======
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<ILeadRepository, LeadRepository>();
 
+>>>>>>> origin/develop
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
@@ -44,6 +51,12 @@ public static class DependencyInjection
         services.AddScoped<GetLeadByIdUseCase>();
         services.AddScoped<CreateLeadUseCase>();
         services.AddScoped<UpdateLeadStatusUseCase>();
+        
+        // Sales Orders Use Cases
+        services.AddScoped<GetSalesOrdersUseCase>();
+        services.AddScoped<GetSalesOrderByIdUseCase>();
+        services.AddScoped<CreateSalesOrderUseCase>();
+        services.AddScoped<UpdateSalesOrderStatusUseCase>();
 
         // JWT Authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

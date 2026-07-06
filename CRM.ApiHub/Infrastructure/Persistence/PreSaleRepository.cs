@@ -26,6 +26,10 @@ public class PreSaleRepository : IPreSaleRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
+<<<<<<< HEAD
+            INSERT INTO lead_service.lead_pre_sale (id_cmpg, owner_user_id, current_user_id, id_status, register)
+            VALUES (@CampaignId, @UserId, @UserId, @Status, @CreatedAt)
+=======
             INSERT INTO lead_service.lead_pre_sale (
                 id_cmpg, phone, operator, first_name, last_name, address, province, 
                 coverage_status, id_status, owner_user_id, current_user_id, notes, register
@@ -34,6 +38,7 @@ public class PreSaleRepository : IPreSaleRepository
                 @IdCmpg, @Phone, @Operator, @FirstName, @LastName, @Address, @Province, 
                 @CoverageStatus, @IdStatus, @OwnerUserId, @CurrentUserId, @Notes, @Register
             )
+>>>>>>> origin/develop
             RETURNING id_presale;";
 
         return await connection.ExecuteScalarAsync<int>(sql, preSale);
@@ -80,13 +85,19 @@ public class PreSaleRepository : IPreSaleRepository
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
             UPDATE lead_service.lead_pre_sale 
+<<<<<<< HEAD
+            SET id_status = @StatusId, converted_at = @UpdatedAt, converted_by = @ConvertedBy
+=======
             SET id_status = 3, converted_at = @UpdatedAt
+>>>>>>> origin/develop
             WHERE id_presale = @IdPresale;";
 
         var rowsAffected = await connection.ExecuteAsync(sql, new 
         { 
             IdPresale = idPresale,
-            UpdatedAt = DateTime.UtcNow
+            StatusId = 2, 
+            UpdatedAt = DateTime.UtcNow,
+            ConvertedBy = paramsData?.UserId ?? 0 
         });
 
         return rowsAffected > 0;
