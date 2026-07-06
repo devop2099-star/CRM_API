@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -18,7 +19,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         _config = config;
     }
 
-    public string GenerateToken(User user)
+    public string GenerateToken(User user, string? roleName)
     {
         var secretKey = _config["JwtSettings:SecretKey"] 
             ?? throw new InvalidOperationException("La clave 'JwtSettings:SecretKey' no está configurada.");
@@ -26,11 +27,19 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.IdUser.ToString()),
-            new Claim(JwtRegisteredClaimNames.UniqueName, user.Username)
+            new Claim(JwtRegisteredClaimNames.UniqueName, user.Username),
+            new Claim("id_user", user.IdUser.ToString()),
+            new Claim("username", user.Username)
         };
+
+        if (!string.IsNullOrEmpty(roleName))
+        {
+            claims.Add(new Claim(ClaimTypes.Role, roleName));
+            claims.Add(new Claim("roles", roleName));
+        }
 
         var expirationMinutesStr = _config["JwtSettings:ExpirationMinutes"] ?? "60";
         if (!int.TryParse(expirationMinutesStr, out int expirationMinutes))

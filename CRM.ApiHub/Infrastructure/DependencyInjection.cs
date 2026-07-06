@@ -1,6 +1,7 @@
 using System.Text;
 using CRM.ApiHub.Application.Interfaces;
 using CRM.ApiHub.Application.UseCases.Auth;
+using CRM.ApiHub.Application.UseCases.Leads;
 using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Infrastructure.Authentication;
 using CRM.ApiHub.Infrastructure.Persistence;
@@ -27,8 +28,12 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ICampaignRepository, CampaignRepository>();
         services.AddScoped<ICatalogRepository, CatalogRepository>();
+<<<<<<< feature/middleware-custodia
         services.AddScoped<IPreSaleRepository, PreSaleRepository>();
         services.AddScoped<IPermissionService, PermissionService>(); // <-- TU NUEVA LÍNEA AGREGADA CORRECTAMENTE
+=======
+        services.AddScoped<ILeadRepository, LeadRepository>();
+>>>>>>> develop
 
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -38,6 +43,10 @@ public static class DependencyInjection
         services.AddScoped<LoginUseCase>();
         services.AddScoped<MeUseCase>();
         services.AddScoped<RefreshTokenUseCase>();
+        services.AddScoped<GetLeadsUseCase>();
+        services.AddScoped<GetLeadByIdUseCase>();
+        services.AddScoped<CreateLeadUseCase>();
+        services.AddScoped<UpdateLeadStatusUseCase>();
 
         // JWT Authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
