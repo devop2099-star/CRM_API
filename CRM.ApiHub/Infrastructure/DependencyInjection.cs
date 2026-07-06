@@ -28,7 +28,12 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ICampaignRepository, CampaignRepository>();
         services.AddScoped<ICatalogRepository, CatalogRepository>();
+<<<<<<< feature/middleware-custodia
+        services.AddScoped<IPreSaleRepository, PreSaleRepository>();
+        services.AddScoped<IPermissionService, PermissionService>(); // <-- TU NUEVA LÍNEA AGREGADA CORRECTAMENTE
+=======
         services.AddScoped<ILeadRepository, LeadRepository>();
+>>>>>>> develop
 
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();

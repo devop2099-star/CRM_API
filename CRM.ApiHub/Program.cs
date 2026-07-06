@@ -1,7 +1,6 @@
 using CRM.ApiHub.Infrastructure;
 using Microsoft.OpenApi;
 
-Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
