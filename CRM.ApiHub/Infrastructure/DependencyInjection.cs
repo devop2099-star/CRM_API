@@ -28,7 +28,10 @@ public static class DependencyInjection
         services.AddScoped<ICampaignRepository, CampaignRepository>();
         services.AddScoped<ICatalogRepository, CatalogRepository>();
         services.AddScoped<IPreSaleRepository, PreSaleRepository>();
-        services.AddScoped<IPermissionService, PermissionService>(); // <-- TU NUEVA LÍNEA AGREGADA CORRECTAMENTE
+        services.AddScoped<IPermissionService, PermissionService>(); 
+
+        services.AddScoped<IFormRepository, FormRepository>();
+        services.AddScoped<IOrderDataRepository, OrderDataRepository>();
 
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
