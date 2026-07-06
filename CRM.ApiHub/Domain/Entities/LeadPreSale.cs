@@ -1,28 +1,52 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CRM.ApiHub.Domain.Entities;
 
-[Table("lead_pre_sale")]
+[Table("lead_pre_sale", Schema = "lead_service")]
 public class LeadPreSale
 {
     [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("id")]
-    public int Id { get; set; }
+    [Column("id_presale")]
+    public long IdPresale { get; set; }
 
-    [Column("lead_id")]
-    public int LeadId { get; set; }
+    [Column("id_cmpg")]
+    public long IdCmpg { get; set; }
 
-    [Column("assigned_user_id")]
-    public int AssignedUserId { get; set; }
+    [Column("phone")]
+    public string? Phone { get; set; }
+
+    [Column("operator")]
+    public string? Operator { get; set; }
+
+    [Column("first_name")]
+    public string? FirstName { get; set; }
+
+    [Column("last_name")]
+    public string? LastName { get; set; }
+
+    [Column("address")]
+    public string? Address { get; set; }
+
+    [Column("province")]
+    public string? Province { get; set; }
+
+    [Column("coverage_status")]
+    public string? CoverageStatus { get; set; }
+
+    [Column("id_status")]
+    public long IdStatus { get; set; }
+
+    [Column("owner_user_id")]
+    public long OwnerUserId { get; set; }
+
+    [Column("current_user_id")]
+    public long CurrentUserId { get; set; }
 
     [Column("notes")]
     public string? Notes { get; set; }
 
-    [Column("scheduled_contact_date")]
-    public DateTime? ScheduledContactDate { get; set; }
-
-    [Column("created_at")]
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    [Column("register")]
+    public DateTime Register { get; set; } = DateTime.UtcNow;
 }

@@ -1,82 +1,83 @@
-# Solución CRM - Backend & Frontend (.NET 10)
+# Nyx CRM - Plataforma de Control CallCenter (.NET 10)
 
-Esta solución implementa la estructura base de un sistema CRM utilizando una **Arquitectura Hexagonal (Clean Architecture)** con desacoplamiento total de sus capas y seguridad integrada en base de datos.
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](#)
+[![Security Status](https://img.shields.io/badge/Security-Hardened-blue.svg)](#)
+[![Framework](https://img.shields.io/badge/.NET-10.0-purple.svg)](#)
 
----
-
-## 🛠️ Tecnologías Utilizadas
-
-- **Núcleo:** .NET 10 (ASP.NET Core Web API + Blazor Server)
-- **Persistencia:** PostgreSQL, Dapper (Micro-ORM de alta velocidad), Npgsql
-- **Criptografía:** AES-256 (Cifrado simétrico de credenciales) y BCrypt (Hasing seguro de contraseñas de usuarios)
-- **Autenticación:** JWT (JSON Web Tokens) con expiración configurable
+Nyx CRM es una solución empresarial de alta gama diseñada para call centers y equipos de supervisión de ventas. El sistema está estructurado bajo una **Arquitectura Hexagonal (Clean Architecture)** desacoplada y cuenta con un fuerte enfoque en seguridad criptográfica, mitigación de secuestro de sesiones e interfaces fluidas de alto rendimiento mediante Blazor Server y WebAssembly.
 
 ---
 
-## 🏗️ Estructura del Proyecto (Arquitectura Hexagonal)
+## 🏗️ Arquitectura del Proyecto
 
-La capa `CRM.ApiHub` está estructurada de la siguiente manera:
-- **Domain:** Entidades puras y puertos (interfaces) de repositorios. Totalmente agnóstica de frameworks.
-- **Application:** Casos de uso (ej. `LoginUseCase`), contratos de servicios y DTOs de comunicación.
-- **Infrastructure:** Adaptadores concretos (acceso a DB con Dapper, generación de tokens JWT, e inyección de dependencias).
-- **Api:** Controladores y middlewares HTTP de ASP.NET Core.
+El backend se encuentra desacoplado del frontend bajo los principios del diseño guiado por el dominio (DDD) y arquitectura de puertos y adaptadores:
 
----
-
-## 🔒 Conexión Segura (Cifrado de Credenciales)
-
-Las credenciales del PostgreSQL remoto están protegidas. En el archivo `appsettings.json`, la cadena de conexión se guarda cifrada con el prefijo `Encrypted:` mediante AES-256:
-```json
-"ConnectionStrings": {
-  "DefaultConnection": "Encrypted:14P+tcDhmupBRJM49Gfcc+a8ukIUUKgtc7cvTlmaSb9H2Bd//lyQFXfTJgYyuFPhO/BxYfrEEOrIBwkeosgudUPRs6TY1FLOZIXmIPwyO36qx/GoY1A4ZFu3X05lsXBw"
-}
 ```
-El `DbConnectionFactory` detecta este prefijo y descifra la cadena dinámicamente en memoria en tiempo de ejecución, protegiendo las contraseñas en texto plano.
+CRM_API/
+├── CRM.sln                      # Solución global (.NET 10)
+├── CRM.ApiHub/                  # Capa del Backend (API REST)
+│   ├── Api/                     # Entrypoint HTTP, Controladores y Filtros
+│   ├── Application/             # Casos de Uso, Puertos de Entrada e Interfaces
+│   ├── Domain/                  # Modelos Puros, POCOs y Puertos de Repositorio (Agnóstico)
+│   └── Infrastructure/          # Adaptadores concretos (Persistencia Dapper, JWT, Cifrado AES)
+├── CRM.WebFrontend/             # Servidor de Hosting Blazor (Supervisor Dashboard)
+│   └── Components/Pages/        # Dashboard del Supervisor y Vista de Login Premium
+└── CRM.WebFrontend.Client/      # Cliente Blazor WebAssembly (Asesor Dashboard)
+    └── Pages/                   # Vistas interactivas de cliente de baja latencia
+```
 
 ---
 
-## 🚀 Cómo Inicializar la Solución
+## 🔒 Seguridad y Endurecimiento
 
-### 1. Prerrequisitos
-- Tener instalado el SDK de .NET 10.
-- Acceso a internet (el backend se conectará automáticamente a la base de datos PostgreSQL remota y segura configurada).
+La plataforma implementa las siguientes medidas de seguridad para entornos productivos:
 
-### 2. Compilar la Solución
-Desde la raíz de la carpeta del proyecto, ejecuta:
-```powershell
+*   **Autenticación Seguro por Cookies (HttpOnly)**: Los tokens JWT de sesión no se almacenan en el navegador (`localStorage`), mitigando ataques XSS. El servidor de Blazor actúa como proxy seguro y escribe cookies cifradas con atributos `HttpOnly`, `Secure` y `SameSite=Lax`.
+*   **Mitigación de Session Hijacking (Session Binding)**: El almacén de refresh tokens (`InMemoryRefreshTokenStore`) vincula y valida en cada petición de refresco la **Dirección IP del cliente** (con soporte para cabeceras de proxy `X-Forwarded-For`) y el **User-Agent**.
+*   **Firmado Criptográfico Robusto**: Firma del token JWT respaldada por una clave secreta de **584 bits** configurada en variables de entorno o almacén seguro.
+*   **Revocación de Sesiones e Inactividad**: Endpoint `/api/auth/logout` para invalidación inmediata de tokens en memoria y cookies configuradas con `SlidingExpiration` de **20 minutos**.
+
+---
+
+## 🚀 Instalación y Configuración
+
+### 📋 Prerrequisitos
+*   SDK de .NET 10.0
+*   Base de datos PostgreSQL (con esquemas de negocio y administración de acceso configurados)
+
+### ⚙️ Configuración inicial
+1.  En `CRM_API/CRM.ApiHub/appsettings.json`, asegúrate de tener configurada la cadena de conexión cifrada mediante AES-256 en la propiedad `ConnectionStrings:DefaultConnection`.
+2.  Configura el JWT SecretKey y la configuración de expiración de sesión.
+
+### 🛠️ Compilación y Ejecución
+
+Compilar toda la solución:
+```bash
 dotnet build CRM.sln
 ```
 
-### 3. Ejecutar el Backend (API)
-Navega o apunta al proyecto del API y levántalo:
-```powershell
+Ejecutar el Backend (ApiHub):
+```bash
 dotnet run --project CRM.ApiHub/CRM.ApiHub.csproj --launch-profile "http"
 ```
-- La API estará escuchando en: `http://localhost:5068`
-- La documentación interactiva de **Swagger** estará disponible en: [http://localhost:5068/swagger](http://localhost:5068/swagger)
+*   **API Hub**: [http://localhost:5068](http://localhost:5068)
+*   **Documentación Swagger**: [http://localhost:5068/swagger](http://localhost:5068/swagger)
 
-### 4. Ejecutar el Frontend (Blazor)
-En otra terminal, levanta el servidor web del Frontend:
-```powershell
-dotnet run --project CRM.WebFrontend/CRM.WebFrontend.csproj
+Ejecutar el Frontend (Blazor Web):
+```bash
+dotnet run --project CRM.WebFrontend/CRM.WebFrontend.csproj --launch-profile "http"
 ```
-- El frontend estará disponible en la URL indicada en la consola (por defecto `http://localhost:5000` o similar).
+*   **Frontend Web**: [http://localhost:5261](http://localhost:5261)
 
 ---
 
-## 🧪 Pruebas de Autenticación (Swagger)
+## 🧪 Pruebas de Desarrollo y Entornos
 
-Para comprobar el funcionamiento del endpoint de Login con JWT utilizando cuentas reales de la base de datos (por ejemplo, `cnaranjo`):
+### Credenciales de Bypass de Desarrollo (Developer Fallback)
+En entornos locales (`ASPNETCORE_ENVIRONMENT = Development`), se cuenta con usuarios de prueba sin requerir conexión a base de datos externa:
+*   **Supervisor**: `test.supervisor` / `password123`
+*   **Asesor**: `test.asesor` / `password123`
 
-1. Modifica la contraseña de algún usuario en la base de datos actualizando su columna `password_hash` con un hash de BCrypt conocido (por ejemplo, el hash para la contraseña `Password123!` es `$2a$11$lqV.PEBI3RKFESCWTKFuqOpeERkx.axXWZB5KfL9NPNp4w5k7Yuoq`).
-2. Ve a [http://localhost:5068/swagger](http://localhost:5068/swagger).
-3. Abre el endpoint **`POST /api/auth/login`**.
-4. Envía la solicitud con el nombre de usuario y su respectiva contraseña en texto plano:
-   ```json
-   {
-     "username": "cnaranjo",
-     "password": "Password123!"
-   }
-   ```
-5. El servidor responderá con `200 OK` y entregará el token JWT firmado de forma exitosa.
-
+### Colección de Postman y Contratos
+*   La colección oficial de endpoints está exportada en `docs/CRM_CallCenter_Semana1.postman_collection.json`.
+*   La especificación formal de todos los Request/Response del API se encuentra detallada en `docs/contratos_api.md`.

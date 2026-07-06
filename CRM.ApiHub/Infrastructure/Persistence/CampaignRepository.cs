@@ -22,7 +22,7 @@ public class CampaignRepository : ICampaignRepository
         return await connection.QueryAsync<Campaign>(sql);
     }
 
-    public async Task<Campaign> GetByIdAsync(int id)
+    public async Task<Campaign?> GetByIdAsync(int id)
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = "SELECT * FROM campaign_service.campaign WHERE id_cmpg = @Id;";
