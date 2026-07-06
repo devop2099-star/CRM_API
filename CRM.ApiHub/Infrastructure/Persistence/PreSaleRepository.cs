@@ -17,7 +17,7 @@ public class PreSaleRepository : IPreSaleRepository
     public async Task<IEnumerable<LeadPreSale>> GetByUserAsync(int userId)
     {
         using var connection = _connectionFactory.CreateConnection();
-        const string sql = "SELECT * FROM lead_service.lead_pre_sale WHERE user_id = @UserId;";
+        const string sql = "SELECT * FROM lead_service.lead_pre_sale WHERE current_user_id = @UserId;";
         
         return await connection.QueryAsync<LeadPreSale>(sql, new { UserId = userId });
     }
@@ -26,9 +26,9 @@ public class PreSaleRepository : IPreSaleRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
-            INSERT INTO lead_service.lead_pre_sale (lead_id, user_id, campaign_id, status, created_at)
-            VALUES (@LeadId, @UserId, @CampaignId, @Status, @CreatedAt)
-            RETURNING id;";
+            INSERT INTO lead_service.lead_pre_sale (id_cmpg, owner_user_id, current_user_id, id_status, register)
+            VALUES (@CampaignId, @UserId, @UserId, @Status, @CreatedAt)
+            RETURNING id_presale;";
 
         return await connection.ExecuteScalarAsync<int>(sql, preSale);
     }
@@ -55,8 +55,8 @@ public class PreSaleRepository : IPreSaleRepository
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
             UPDATE lead_service.lead_pre_sale 
-            SET user_id = @ToUserId, assignment_context = @Context, updated_at = @UpdatedAt
-            WHERE id = @IdPresale;";
+            SET current_user_id = @ToUserId, notes = @Context, last_activity_at = @UpdatedAt
+            WHERE id_presale = @IdPresale;";
 
         var rowsAffected = await connection.ExecuteAsync(sql, new 
         { 
@@ -74,13 +74,15 @@ public class PreSaleRepository : IPreSaleRepository
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
             UPDATE lead_service.lead_pre_sale 
-            SET status = 'Converted', updated_at = @UpdatedAt
-            WHERE id = @IdPresale;";
+            SET id_status = @StatusId, converted_at = @UpdatedAt, converted_by = @ConvertedBy
+            WHERE id_presale = @IdPresale;";
 
         var rowsAffected = await connection.ExecuteAsync(sql, new 
         { 
             IdPresale = idPresale,
-            UpdatedAt = DateTime.UtcNow
+            StatusId = 2, 
+            UpdatedAt = DateTime.UtcNow,
+            ConvertedBy = paramsData?.UserId ?? 0 
         });
 
         return rowsAffected > 0;
