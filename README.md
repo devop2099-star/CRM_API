@@ -20,10 +20,8 @@ CRM_API/
 │   ├── Application/             # Casos de Uso, Puertos de Entrada e Interfaces
 │   ├── Domain/                  # Modelos Puros, POCOs y Puertos de Repositorio (Agnóstico)
 │   └── Infrastructure/          # Adaptadores concretos (Persistencia Dapper, JWT, Cifrado AES)
-├── CRM.WebFrontend/             # Servidor de Hosting Blazor (Supervisor Dashboard)
-│   └── Components/Pages/        # Dashboard del Supervisor y Vista de Login Premium
-└── CRM.WebFrontend.Client/      # Cliente Blazor WebAssembly (Asesor Dashboard)
-    └── Pages/                   # Vistas interactivas de cliente de baja latencia
+└── CRM.WebFrontend/             # Frontend e Interfaz de Usuario Blazor (Asesor y Supervisor Dashboards)
+    └── Components/Pages/        # Dashboards del Asesor, Supervisor y Vista de Login Premium
 ```
 
 ---
