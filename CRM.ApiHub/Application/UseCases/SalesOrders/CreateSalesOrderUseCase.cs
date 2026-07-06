@@ -1,0 +1,46 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using CRM.ApiHub.Application.DTOs;
+using CRM.ApiHub.Domain.Entities;
+using CRM.ApiHub.Domain.Repositories;
+
+namespace CRM.ApiHub.Application.UseCases.SalesOrders;
+
+public class CreateSalesOrderUseCase
+{
+    private readonly ISalesOrderRepository _salesOrderRepository;
+
+    public CreateSalesOrderUseCase(ISalesOrderRepository salesOrderRepository)
+    {
+        _salesOrderRepository = salesOrderRepository;
+    }
+
+    public async Task<SalesOrder> ExecuteAsync(SalesOrderCreateDto dto, CancellationToken ct = default)
+    {
+        var order = new SalesOrder
+        {
+            IdLead = dto.IdLead,
+            IdCmpg = dto.IdCmpg,
+            IdUser = dto.IdUser,
+            OwnerUserId = dto.OwnerUserId,
+            CustodyUserId = dto.CustodyUserId,
+            IdStatus = dto.IdStatus,
+            IdSubstatus = dto.IdSubstatus,
+            CurrencyCode = dto.CurrencyCode ?? "EUR",
+            CommissionCurrency = dto.CommissionCurrency ?? "PEN",
+            Status = dto.Status ?? "PENDING_VALIDATION",
+            SalesDate = dto.SalesDate ?? DateTime.UtcNow,
+            TotalProducts = dto.TotalProducts,
+            TotalValue = dto.TotalValue,
+            IsAlternate = dto.IsAlternate,
+            Register = DateTime.UtcNow,
+            LastUpdate = DateTime.UtcNow
+        };
+
+        var newId = await _salesOrderRepository.CreateAsync(order, ct);
+        order.IdOrder = newId;
+
+        return order;
+    }
+}
