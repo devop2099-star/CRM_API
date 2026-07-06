@@ -33,10 +33,12 @@ public static class DependencyInjection
         services.AddScoped<IFormRepository, FormRepository>();
         services.AddScoped<IOrderDataRepository, OrderDataRepository>();
 
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
         
+        services.AddScoped<INotificationService, Application.Services.NotificationService>();
         // Use Cases
         services.AddScoped<LoginUseCase>();
         services.AddScoped<MeUseCase>();

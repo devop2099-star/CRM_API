@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CRM.ApiHub.Domain.Entities;
 using CRM.ApiHub.Domain.Repositories;
+using CRM.ApiHub.Application.Interfaces; 
 
 namespace CRM.ApiHub.Api.Controllers;
 
@@ -12,11 +13,13 @@ public class FormController : ControllerBase
 {
     private readonly IFormRepository _formRepository;
     private readonly IOrderDataRepository _orderDataRepository;
+    private readonly INotificationService _notificationService; 
 
-    public FormController(IFormRepository formRepository, IOrderDataRepository orderDataRepository)
+    public FormController(IFormRepository formRepository, IOrderDataRepository orderDataRepository, INotificationService notificationService) 
     {
         _formRepository = formRepository;
         _orderDataRepository = orderDataRepository;
+        _notificationService = notificationService; 
     }
 
     [HttpGet("campaign/{idCmpg}/stage/{idStage}")]
@@ -51,13 +54,20 @@ public class FormController : ControllerBase
     }
 
     [HttpPut("data/{idData}/status")]
-    // [RequiresPermission("sales.order.edit.field")] 
     public async Task<IActionResult> UpdateStatus(long idData, [FromQuery] string status, [FromQuery] long validatedBy)
     {
         if (string.IsNullOrWhiteSpace(status))
             return BadRequest("El estado es requerido.");
 
         await _orderDataRepository.UpdateFieldStatusAsync(idData, status, validatedBy);
+
+        await _notificationService.SendNotificationAsync(
+            userId: validatedBy, 
+            title: "Cambio de Estado",
+            message: $"El registro {idData} ha cambiado al estado: {status}.",
+            module: "Ventas"
+        );
+
         return Ok(new { message = "Estado actualizado correctamente." });
     }
 }
