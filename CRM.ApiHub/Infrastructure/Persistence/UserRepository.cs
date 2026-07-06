@@ -59,8 +59,17 @@ public class UserRepository : IUserRepository
             LEFT JOIN campaign c ON uc.id_cmpg = c.id_cmpg AND c.is_active = true
             WHERE u.id_user = @UserId;";
 
-        return await conn.QueryFirstOrDefaultAsync<UserDetail>(
+        var result = await conn.QueryFirstOrDefaultAsync<UserDetail>(
             new CommandDefinition(sql, new { UserId = userId }, cancellationToken: ct)
         );
+
+        if (result != null)
+        {
+            result.Username = Domain.Utils.StringSanitizer.Sanitize(result.Username) ?? "";
+            result.RoleName = Domain.Utils.StringSanitizer.Sanitize(result.RoleName);
+            result.CampaignName = Domain.Utils.StringSanitizer.Sanitize(result.CampaignName);
+        }
+
+        return result;
     }
 }

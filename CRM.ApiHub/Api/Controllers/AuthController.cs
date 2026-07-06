@@ -16,23 +16,26 @@ public class AuthController : ControllerBase
     private readonly MeUseCase _meUseCase;
     private readonly RefreshTokenUseCase _refreshTokenUseCase;
     private readonly CRM.ApiHub.Application.Interfaces.IJwtTokenGenerator _tokenGenerator;
+    private readonly CRM.ApiHub.Application.Interfaces.IRefreshTokenStore _refreshTokenStore;
 
     public AuthController(
         LoginUseCase loginUseCase,
         MeUseCase meUseCase,
         RefreshTokenUseCase refreshTokenUseCase,
-        CRM.ApiHub.Application.Interfaces.IJwtTokenGenerator tokenGenerator)
+        CRM.ApiHub.Application.Interfaces.IJwtTokenGenerator tokenGenerator,
+        CRM.ApiHub.Application.Interfaces.IRefreshTokenStore refreshTokenStore)
     {
         _loginUseCase = loginUseCase;
         _meUseCase = meUseCase;
         _refreshTokenUseCase = refreshTokenUseCase;
         _tokenGenerator = tokenGenerator;
+        _refreshTokenStore = refreshTokenStore;
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var response = await _loginUseCase.ExecuteAsync(request);
+        var response = await _loginUseCase.ExecuteAsync(request, GetClientIpAddress(), GetUserAgent());
         if (response == null)
         {
             return Unauthorized(new { message = "Nombre de usuario o contraseña incorrectos." });
@@ -68,11 +71,36 @@ public class AuthController : ControllerBase
     [HttpPost("refresh-token")]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
     {
-        var response = await _refreshTokenUseCase.ExecuteAsync(request);
+        var response = await _refreshTokenUseCase.ExecuteAsync(request, GetClientIpAddress(), GetUserAgent());
         if (response == null)
         {
             return Unauthorized(new { message = "Token de refresco inválido o expirado." });
         }
         return Ok(response);
+    }
+
+    [HttpPost("logout")]
+    public IActionResult Logout([FromBody] LogoutRequest request)
+    {
+        if (request != null && !string.IsNullOrEmpty(request.RefreshToken))
+        {
+            _refreshTokenStore.RevokeToken(request.RefreshToken);
+        }
+        return Ok();
+    }
+
+    private string GetClientIpAddress()
+    {
+        string ipAddress = Request.Headers["X-Forwarded-For"].ToString();
+        if (string.IsNullOrEmpty(ipAddress))
+        {
+            ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+        }
+        return ipAddress;
+    }
+
+    private string GetUserAgent()
+    {
+        return Request.Headers["User-Agent"].ToString();
     }
 }

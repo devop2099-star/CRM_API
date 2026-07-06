@@ -24,9 +24,9 @@ public class RefreshTokenUseCase
         _tokenGenerator = tokenGenerator;
     }
 
-    public async Task<LoginResponse?> ExecuteAsync(RefreshTokenRequest request, CancellationToken ct = default)
+    public async Task<LoginResponse?> ExecuteAsync(RefreshTokenRequest request, string ipAddress, string userAgent, CancellationToken ct = default)
     {
-        if (!_refreshTokenStore.TryGetUserId(request.RefreshToken, out long userId))
+        if (!_refreshTokenStore.TryGetUserId(request.RefreshToken, ipAddress, userAgent, out long userId))
         {
             return null;
         }
@@ -48,7 +48,7 @@ public class RefreshTokenUseCase
         var newAccessToken = _tokenGenerator.GenerateToken(user, role);
         var newRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var expiry = DateTime.UtcNow.AddDays(7);
-        _refreshTokenStore.SaveToken(newRefreshToken, user.IdUser, expiry);
+        _refreshTokenStore.SaveToken(newRefreshToken, user.IdUser, expiry, ipAddress, userAgent);
 
         return new LoginResponse(newAccessToken, newRefreshToken, user.Username, role);
     }

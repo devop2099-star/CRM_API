@@ -30,9 +30,15 @@ public static class DependencyInjection
         services.AddScoped<ICampaignRepository, CampaignRepository>();
         services.AddScoped<ICatalogRepository, CatalogRepository>();
         services.AddScoped<IPreSaleRepository, PreSaleRepository>();
+<<<<<<< HEAD
         services.AddScoped<IPermissionService, PermissionService>(); // <-- TU NUEVA LÍNEA AGREGADA CORRECTAMENTE
         services.AddScoped<ILeadRepository, LeadRepository>();
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
+=======
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<ILeadRepository, LeadRepository>();
+
+>>>>>>> origin/develop
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();

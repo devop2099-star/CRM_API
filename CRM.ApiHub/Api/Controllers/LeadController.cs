@@ -8,6 +8,8 @@ using CRM.ApiHub.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using CRM.ApiHub.Api.Filters;
+
 namespace CRM.ApiHub.Api.Controllers;
 
 [Authorize]
@@ -84,6 +86,7 @@ public class LeadController : ControllerBase
     }
 
     [HttpPatch("{id:long}/status")]
+    [RequiresPermission("update_lead_status")]
     public async Task<IActionResult> UpdateLeadStatus(long id, [FromBody] LeadUpdateStatusDto dto, CancellationToken ct)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
