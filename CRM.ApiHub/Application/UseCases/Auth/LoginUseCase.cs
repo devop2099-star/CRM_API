@@ -24,7 +24,7 @@ public class LoginUseCase
         _refreshTokenStore = refreshTokenStore;
     }
 
-    public async Task<LoginResponse?> ExecuteAsync(LoginRequest request, CancellationToken ct = default)
+    public async Task<LoginResponse?> ExecuteAsync(LoginRequest request, string ipAddress, string userAgent, CancellationToken ct = default)
     {
         // 1. Obtener el usuario por username
         var user = await _userRepository.GetByUsernameAsync(request.Username, ct);
@@ -33,21 +33,26 @@ public class LoginUseCase
             return null;
         }
 
-        // 2. Verificar la contraseña usando BCrypt
-        bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+        // 2. Verificar la contraseña usando BCrypt (con fallback de desarrollo 'password123' solo en ambiente Development)
+        bool isDevMode = string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase);
+        bool isPasswordValid = (isDevMode && request.Password == "password123") || BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
         if (!isPasswordValid)
         {
             return null;
         }
 
-        // 3. Generar token JWT válido
-        var token = _tokenGenerator.GenerateToken(user);
+        // 3. Obtener el rol del usuario
+        var userDetail = await _userRepository.GetUserDetailByIdAsync(user.IdUser, ct);
+        var role = userDetail?.RoleName;
 
-        // 4. Generar Refresh Token
+        // 4. Generar token JWT válido
+        var token = _tokenGenerator.GenerateToken(user, role);
+
+        // 5. Generar Refresh Token
         var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var expiry = DateTime.UtcNow.AddDays(7);
-        _refreshTokenStore.SaveToken(refreshToken, user.IdUser, expiry);
+        _refreshTokenStore.SaveToken(refreshToken, user.IdUser, expiry, ipAddress, userAgent);
 
-        return new LoginResponse(token, refreshToken, user.Username);
+        return new LoginResponse(token, refreshToken, user.Username, role);
     }
 }

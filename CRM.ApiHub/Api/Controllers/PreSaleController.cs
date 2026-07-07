@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Domain.Entities;
+using Microsoft.AspNetCore.Authorization;
+using CRM.ApiHub.Api.Filters;
 
 namespace CRM.ApiHub.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("presales")]
 public class PreSaleController : ControllerBase
@@ -28,7 +31,7 @@ public class PreSaleController : ControllerBase
     public async Task<IActionResult> Create([FromBody] LeadPreSale preSale)
     {
         var id = await _repository.CreateAsync(preSale);
-        return CreatedAtAction(nameof(GetByUser), new { userId = preSale.AssignedUserId }, new { id });
+        return CreatedAtAction(nameof(GetByUser), new { userId = preSale.CurrentUserId }, new { id });
     }
 
     // POST /presales/{id}/calls

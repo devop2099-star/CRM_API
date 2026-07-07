@@ -1,6 +1,9 @@
 using System.Text;
 using CRM.ApiHub.Application.Interfaces;
 using CRM.ApiHub.Application.UseCases.Auth;
+using CRM.ApiHub.Application.UseCases.Leads;
+using CRM.ApiHub.Application.UseCases.SalesOrders;
+using CRM.ApiHub.Application.UseCases.Documents;
 using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Infrastructure.Authentication;
 using CRM.ApiHub.Infrastructure.Persistence;
@@ -28,11 +31,12 @@ public static class DependencyInjection
         services.AddScoped<ICampaignRepository, CampaignRepository>();
         services.AddScoped<ICatalogRepository, CatalogRepository>();
         services.AddScoped<IPreSaleRepository, PreSaleRepository>();
-        services.AddScoped<IPermissionService, PermissionService>(); 
-
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<ILeadRepository, LeadRepository>();
+        services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
+        services.AddScoped<IOrderDocumentRepository, OrderDocumentRepository>();
         services.AddScoped<IFormRepository, FormRepository>();
         services.AddScoped<IOrderDataRepository, OrderDataRepository>();
-
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IIncidentRepository, IncidentRepository>();
         // Services & Stores
@@ -44,6 +48,21 @@ public static class DependencyInjection
         services.AddScoped<LoginUseCase>();
         services.AddScoped<MeUseCase>();
         services.AddScoped<RefreshTokenUseCase>();
+        services.AddScoped<GetLeadsUseCase>();
+        services.AddScoped<GetLeadByIdUseCase>();
+        services.AddScoped<CreateLeadUseCase>();
+        services.AddScoped<UpdateLeadStatusUseCase>();
+        
+        // Sales Orders Use Cases
+        services.AddScoped<GetSalesOrdersUseCase>();
+        services.AddScoped<GetSalesOrderByIdUseCase>();
+        services.AddScoped<CreateSalesOrderUseCase>();
+        services.AddScoped<UpdateSalesOrderStatusUseCase>();
+
+        // Document Use Cases
+        services.AddScoped<GetDocumentsByOrderUseCase>();
+        services.AddScoped<UploadOrderDocumentUseCase>();
+        services.AddScoped<VerifyOrderDocumentUseCase>();
 
         // JWT Authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
