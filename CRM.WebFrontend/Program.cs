@@ -1,4 +1,5 @@
 using CRM.WebFrontend.Components;
+using CRM.WebFrontend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddScoped<IBackofficeService, MockBackofficeService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
