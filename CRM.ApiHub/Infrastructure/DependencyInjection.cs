@@ -39,6 +39,8 @@ public static class DependencyInjection
         services.AddScoped<IOrderDataRepository, OrderDataRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IIncidentRepository, IncidentRepository>();
+        services.AddScoped<IAlternateProfileRepository, AlternateProfileRepository>();
+        services.AddScoped<IApprovalRepository, ApprovalRepository>();
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();

@@ -5,6 +5,10 @@ using CRM.ApiHub.Domain.Repositories;
 
 namespace CRM.ApiHub.Api.Controllers;
 
+// DTOs para evitar el colapso de la URL por longitud
+public record IncidentResponseRequest(string ResponseText, string ResponseType, long RespondedBy);
+public record ResolveIncidentRequest(string Notes, long ResolvedBy);
+
 [ApiController]
 [Route("api/v1/incidents")]
 [Authorize]
@@ -35,7 +39,6 @@ public class IncidentController : ControllerBase
     public async Task<IActionResult> Create([FromBody] OrderIncident incident)
     {
         var newIncidentId = await _incidentRepository.CreateAsync(incident);
-
         var suggestedArticles = await _incidentRepository.GetKbSuggestionsAsync(incident.IdIncident);
 
         return Created($"/api/v1/incidents/order/{incident.IdOrder}", new 
@@ -47,16 +50,16 @@ public class IncidentController : ControllerBase
     }
 
     [HttpPost("{id}/responses")]
-    public async Task<IActionResult> CreateResponse(long id, [FromQuery] string responseText, [FromQuery] string responseType, [FromQuery] long respondedBy)
+    public async Task<IActionResult> CreateResponse(long id, [FromBody] IncidentResponseRequest request)
     {
-        await _incidentRepository.CreateResponseAsync(id, responseText, responseType, respondedBy);
+        await _incidentRepository.CreateResponseAsync(id, request.ResponseText, request.ResponseType, request.RespondedBy);
         return Ok(new { message = "Respuesta registrada." });
     }
 
     [HttpPatch("{id}/resolve")]
-    public async Task<IActionResult> Resolve(long id, [FromQuery] string notes, [FromQuery] long resolvedBy)
+    public async Task<IActionResult> Resolve(long id, [FromBody] ResolveIncidentRequest request)
     {
-        await _incidentRepository.ResolveAsync(id, notes, resolvedBy);
+        await _incidentRepository.ResolveAsync(id, request.Notes, request.ResolvedBy);
         return Ok(new { message = "Incidencia resuelta correctamente." });
     }
 }

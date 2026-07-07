@@ -164,6 +164,10 @@ app.MapPost("/login-endpoint", async (HttpContext httpContext, IHttpClientFactor
         {
             return Results.Redirect("/supervisor");
         }
+        if (role.Equals("BACKOFFICE", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.Redirect("/backoffice/dashboard");
+        }
         return Results.Redirect("/asesor");
     }
     catch (Exception ex)

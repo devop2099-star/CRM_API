@@ -21,7 +21,7 @@ public class OrderDocumentRepository : IOrderDocumentRepository
     public async Task<IEnumerable<OrderDocument>> GetByOrderAsync(long idOrder, CancellationToken ct = default)
     {
         using var connection = _connectionFactory.CreateConnection();
-        const string sql = "SELECT * FROM order_document WHERE id_order = @IdOrder AND is_active = true ORDER BY uploaded_at DESC;";
+        const string sql = "SELECT * FROM sales_service.order_document WHERE id_order = @IdOrder AND is_active = true ORDER BY uploaded_at DESC;";
 
         return await connection.QueryAsync<OrderDocument>(
             new CommandDefinition(sql, new { IdOrder = idOrder }, cancellationToken: ct)
@@ -32,7 +32,7 @@ public class OrderDocumentRepository : IOrderDocumentRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
-            INSERT INTO order_document (
+            INSERT INTO sales_service.order_document (
                 id_order, document_type, file_name, file_path, file_size_kb,
                 mime_type, verified_by, verified_at, verification_status,
                 verification_notes, uploaded_by, uploaded_at, is_active
@@ -53,7 +53,7 @@ public class OrderDocumentRepository : IOrderDocumentRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
-            UPDATE order_document 
+            UPDATE sales_service.order_document 
             SET verification_status = @Status, 
                 verification_notes = @Notes, 
                 verified_by = @VerifiedBy, 
@@ -70,7 +70,7 @@ public class OrderDocumentRepository : IOrderDocumentRepository
     public async Task<OrderDocument?> GetByIdAsync(long idDoc, CancellationToken ct = default)
     {
         using var connection = _connectionFactory.CreateConnection();
-        const string sql = "SELECT * FROM order_document WHERE id_document = @IdDoc;";
+        const string sql = "SELECT * FROM sales_service.order_document WHERE id_document = @IdDoc;";
 
         return await connection.QueryFirstOrDefaultAsync<OrderDocument>(
             new CommandDefinition(sql, new { IdDoc = idDoc }, cancellationToken: ct)

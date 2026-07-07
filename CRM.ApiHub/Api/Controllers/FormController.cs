@@ -6,6 +6,8 @@ using CRM.ApiHub.Application.Interfaces;
 
 namespace CRM.ApiHub.Api.Controllers;
 
+public record UpdateFormStatusRequest(string Status, long ValidatedBy);
+
 [ApiController]
 [Route("api/v1/forms")]
 [Authorize] 
@@ -54,17 +56,17 @@ public class FormController : ControllerBase
     }
 
     [HttpPut("data/{idData}/status")]
-    public async Task<IActionResult> UpdateStatus(long idData, [FromQuery] string status, [FromQuery] long validatedBy)
+    public async Task<IActionResult> UpdateStatus(long idData, [FromBody] UpdateFormStatusRequest request)
     {
-        if (string.IsNullOrWhiteSpace(status))
+        if (string.IsNullOrWhiteSpace(request.Status))
             return BadRequest("El estado es requerido.");
 
-        await _orderDataRepository.UpdateFieldStatusAsync(idData, status, validatedBy);
+        await _orderDataRepository.UpdateFieldStatusAsync(idData, request.Status, request.ValidatedBy);
 
         await _notificationService.SendNotificationAsync(
-            userId: validatedBy, 
+            userId: request.ValidatedBy, 
             title: "Cambio de Estado",
-            message: $"El registro {idData} ha cambiado al estado: {status}.",
+            message: $"El registro {idData} ha cambiado al estado: {request.Status}.",
             module: "Ventas"
         );
 

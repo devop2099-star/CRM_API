@@ -1,5 +1,6 @@
 @page "/backoffice/dashboard"
 @rendermode InteractiveServer
+@attribute [Authorize(Roles = "BACKOFFICE")]
 @using CRM.WebFrontend.Models
 @using CRM.WebFrontend.Services
 @inject IBackofficeService BackofficeService
