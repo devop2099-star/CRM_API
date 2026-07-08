@@ -188,4 +188,120 @@ public class SalesOrderRepository : ISalesOrderRepository
             throw;
         }
     }
+
+    public async Task<IEnumerable<SalesOrderHistoryEventRaw>> GetOrderHistoryTimelineAsync(long idOrder, CancellationToken ct = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        const string sql = @"
+            SELECT 
+                register AS timestamp,
+                'STATUS_CHANGE' AS event_type,
+                changed_by AS actor_id,
+                TRIM(CONCAT(col.name, ' ', col.paternal_surname, ' ', col.maternal_surname)) AS actor_name,
+                CONCAT('Cambio de estado del pedido de ', COALESCE(from_status_id::text, 'Inicial'), ' a ', to_status_id::text) AS description,
+                json_build_object(
+                    'from_status_id', from_status_id,
+                    'to_status_id', to_status_id,
+                    'comment', comment,
+                    'is_bulk', is_bulk
+                )::text AS details_json
+            FROM sales_service.sales_order_status_history h
+            LEFT JOIN ext_ecosystem.collaborators col ON col.id_user = h.changed_by
+            WHERE h.id_order = @IdOrder
+
+            UNION ALL
+
+            SELECT 
+                register AS timestamp,
+                'CUSTODY_TRANSFER' AS event_type,
+                from_user_id AS actor_id,
+                TRIM(CONCAT(col_from.name, ' ', col_from.paternal_surname, ' ', col_from.maternal_surname)) AS actor_name,
+                CONCAT('Transferencia de custodia de ', from_role, ' (', TRIM(CONCAT(col_from.name, ' ', col_from.paternal_surname)), ') a ', to_role, ' (', TRIM(CONCAT(col_to.name, ' ', col_to.paternal_surname)), ')') AS description,
+                json_build_object(
+                    'from_role', from_role,
+                    'to_role', to_role,
+                    'transfer_type', transfer_type,
+                    'to_user_id', to_user_id,
+                    'comment', comment
+                )::text AS details_json
+            FROM sales_service.sales_order_custody_log c
+            LEFT JOIN ext_ecosystem.collaborators col_from ON col_from.id_user = c.from_user_id
+            LEFT JOIN ext_ecosystem.collaborators col_to ON col_to.id_user = c.to_user_id
+            WHERE c.id_order = @IdOrder
+
+            UNION ALL
+
+            SELECT 
+                register AS timestamp,
+                'INCIDENT_DETECTED' AS event_type,
+                detected_by AS actor_id,
+                TRIM(CONCAT(col.name, ' ', col.paternal_surname, ' ', col.maternal_surname)) AS actor_name,
+                CONCAT('Incidente registrado: ', custom_name) AS description,
+                json_build_object(
+                    'custom_name', custom_name,
+                    'custom_description', custom_description,
+                    'incident_status', incident_status
+                )::text AS details_json
+            FROM sales_service.order_incident i
+            LEFT JOIN ext_ecosystem.collaborators col ON col.id_user = i.detected_by
+            WHERE i.id_order = @IdOrder
+
+            UNION ALL
+
+            SELECT 
+                resolved_at AS timestamp,
+                'INCIDENT_RESOLVED' AS event_type,
+                resolved_by AS actor_id,
+                TRIM(CONCAT(col.name, ' ', col.paternal_surname, ' ', col.maternal_surname)) AS actor_name,
+                CONCAT('Incidente resuelto: ', custom_name) AS description,
+                json_build_object(
+                    'custom_name', custom_name,
+                    'resolution_notes', resolution_notes
+                )::text AS details_json
+            FROM sales_service.order_incident i
+            LEFT JOIN ext_ecosystem.collaborators col ON col.id_user = i.resolved_by
+            WHERE i.id_order = @IdOrder AND i.resolved_at IS NOT NULL
+
+            UNION ALL
+
+            SELECT 
+                uploaded_at AS timestamp,
+                'DOCUMENT_UPLOADED' AS event_type,
+                uploaded_by AS actor_id,
+                TRIM(CONCAT(col.name, ' ', col.paternal_surname, ' ', col.maternal_surname)) AS actor_name,
+                CONCAT('Documento subido: ', file_name, ' (', document_type, ')') AS description,
+                json_build_object(
+                    'file_name', file_name,
+                    'document_type', document_type,
+                    'file_size_kb', file_size_kb,
+                    'mime_type', mime_type
+                )::text AS details_json
+            FROM sales_service.order_document d
+            LEFT JOIN ext_ecosystem.collaborators col ON col.id_user = d.uploaded_by
+            WHERE d.id_order = @IdOrder AND d.is_active = true
+
+            UNION ALL
+
+            SELECT 
+                verified_at AS timestamp,
+                'DOCUMENT_VERIFIED' AS event_type,
+                verified_by AS actor_id,
+                TRIM(CONCAT(col.name, ' ', col.paternal_surname, ' ', col.maternal_surname)) AS actor_name,
+                CONCAT('Documento verificado: ', file_name, ' (', document_type, ') como ', verification_status) AS description,
+                json_build_object(
+                    'file_name', file_name,
+                    'document_type', document_type,
+                    'verification_status', verification_status,
+                    'verification_notes', verification_notes
+                )::text AS details_json
+            FROM sales_service.order_document d
+            LEFT JOIN ext_ecosystem.collaborators col ON col.id_user = d.verified_by
+            WHERE d.id_order = @IdOrder AND d.verified_at IS NOT NULL AND d.is_active = true
+
+            ORDER BY timestamp ASC;";
+
+        return await connection.QueryAsync<SalesOrderHistoryEventRaw>(
+            new CommandDefinition(sql, new { IdOrder = idOrder }, cancellationToken: ct)
+        );
+    }
 }

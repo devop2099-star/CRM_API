@@ -28,4 +28,6 @@ public interface ISalesOrderRepository
         long actorId,
         bool isBulk,
         CancellationToken ct = default);
+
+    Task<IEnumerable<SalesOrderHistoryEventRaw>> GetOrderHistoryTimelineAsync(long idOrder, CancellationToken ct = default);
 }
