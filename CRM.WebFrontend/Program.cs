@@ -1,33 +1,66 @@
-using CRM.WebFrontend.Server.Components;
-using Microsoft.AspNetCore.Components.Authorization;
-using CRM.WebFrontend.Client.Providers;
-using MudBlazor.Services;
+using CRM.WebFrontend.Components;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text;
+using Yarp.ReverseProxy.Transforms;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+var razorBuilder = builder.Services.AddRazorComponents();
+razorBuilder.AddInteractiveServerComponents();
+razorBuilder.AddInteractiveWebAssemblyComponents();
 
-builder.Services.AddMudServices();
-
-// Configuración BFF: Handler para propagar la cookie en SSR y configuración de HttpClient
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddTransient<CookieHandler>();
-builder.Services.AddHttpClient("BFF").AddHttpMessageHandler<CookieHandler>();
-
-builder.Services.AddScoped(sp => 
+// Add HttpClient for calling the backend API
+builder.Services.AddHttpClient("BackendApi", client =>
 {
-    var nav = sp.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>();
-    var client = sp.GetRequiredService<IHttpClientFactory>().CreateClient("BFF");
-    client.BaseAddress = new Uri(nav.BaseUri);
-    return client;
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5068");
 });
 
-builder.Services.AddAuthorizationCore();
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+// Configure native Cookie Authentication for Blazor Server
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "NyxCRM.Auth";
+        options.LoginPath = "/login";
+        options.AccessDeniedPath = "/not-found";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
+        options.SlidingExpiration = true;
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider, CRM.WebFrontend.Providers.PersistingServerAuthenticationStateProvider>();
+
+// Configure YARP with Request Transformation to automatically inject the Bearer Token
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+    .AddTransforms(builderContext =>
+    {
+        builderContext.AddRequestTransform(transformContext =>
+        {
+            var httpContext = transformContext.HttpContext;
+            if (httpContext.User.Identity?.IsAuthenticated == true)
+            {
+                var tokenClaim = httpContext.User.FindFirst("access_token");
+                if (tokenClaim != null)
+                {
+                    transformContext.ProxyRequest.Headers.Authorization = 
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenClaim.Value);
+                }
+            }
+            return ValueTask.CompletedTask;
+        });
+    });
+
+// Agregar servicios de MudBlazor
+builder.Services.AddMudServices();
 
 var app = builder.Build();
 
@@ -35,94 +68,126 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseAntiforgery();
 
-// Endpoints BFF para Autenticación con Cookies HttpOnly
-app.MapPost("/api/auth/login", (LoginRequest req, HttpContext ctx) =>
+// Minimal API: Post Login Form Endpoint
+app.MapPost("/login-endpoint", async (HttpContext httpContext, IHttpClientFactory httpClientFactory) =>
 {
-    // Simulamos validación y parseo de roles (En un entorno real, esto haría un HTTP POST al API Hub externo)
-    var isSupervisor = req.Email.Contains("supervisor", StringComparison.OrdinalIgnoreCase);
-    var role = isSupervisor ? "SUPERVISOR" : "ASESOR";
-    
-    // Generación de un JWT Mockeado para demostrar el almacenamiento seguro
-    var payload = new {
-        unique_name = req.Email,
-        role = role,
-        exp = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()
-    };
-    var base64Payload = Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(payload)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-    var mockJwt = $"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.{base64Payload}.mock_signature";
-    
-    ctx.Response.Cookies.Append("authToken", mockJwt, new CookieOptions 
-    { 
-        HttpOnly = true, 
-        Secure = true, 
-        SameSite = SameSiteMode.Strict 
-    });
-    
-    return Results.Ok(new { success = true, role = role });
-});
+    var form = await httpContext.Request.ReadFormAsync();
+    var username = form["username"].ToString();
+    var password = form["password"].ToString();
 
-app.MapGet("/api/auth/userinfo", (HttpContext ctx) =>
-{
-    if (ctx.Request.Cookies.TryGetValue("authToken", out var token))
+    if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
     {
-        try
-        {
-            var payloadStr = token.Split('.')[1];
-            switch (payloadStr.Length % 4)
-            {
-                case 2: payloadStr += "=="; break;
-                case 3: payloadStr += "="; break;
-            }
-            var jsonBytes = Convert.FromBase64String(payloadStr.Replace('-', '+').Replace('_', '/'));
-            var claimsDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonBytes);
-            return Results.Ok(claimsDict);
-        }
-        catch { }
+        return Results.Redirect("/login?error=Faltan credenciales");
     }
-    return Results.Unauthorized();
+
+    try
+    {
+        var client = httpClientFactory.CreateClient("BackendApi");
+        var payload = JsonSerializer.Serialize(new { username, password });
+        var content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync("/api/auth/login", content);
+        if (!response.IsSuccessStatusCode)
+        {
+            return Results.Redirect("/login?error=Credenciales incorrectas");
+        }
+
+        var responseBytes = await response.Content.ReadAsByteArrayAsync();
+        var jsonStr = Encoding.UTF8.GetString(responseBytes);
+        using var doc = JsonDocument.Parse(jsonStr);
+        var root = doc.RootElement;
+        
+        var token = root.GetProperty("token").GetString();
+        var refreshToken = root.GetProperty("refreshToken").GetString();
+
+        // Get user details from /api/auth/me to know their name and role
+        var meRequest = new HttpRequestMessage(HttpMethod.Get, "/api/auth/me");
+        meRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        var meResponse = await client.SendAsync(meRequest);
+        
+        string role = "ASESOR"; // default fallback
+        string name = username;
+        string campaignName = "";
+
+        if (meResponse.IsSuccessStatusCode)
+        {
+            var meBytes = await meResponse.Content.ReadAsByteArrayAsync();
+            var meJson = Encoding.UTF8.GetString(meBytes);
+            using var meDoc = JsonDocument.Parse(meJson);
+            var meRoot = meDoc.RootElement;
+            name = meRoot.GetProperty("nombre").GetString() ?? username;
+            role = meRoot.GetProperty("rol").GetString() ?? "ASESOR";
+            if (meRoot.TryGetProperty("campanaAsignada", out var cmpProp))
+            {
+                campaignName = cmpProp.GetString() ?? "";
+            }
+        }
+
+        // Parse UserID from JWT token claims
+        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadJwtToken(token);
+        var idUserClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "id_user" || c.Type == "sub");
+        var idUser = idUserClaim?.Value ?? "0";
+
+        // Establish the Cookie Authentication Ticket using explicit System.Security.Claims.Claim
+        var claims = new List<System.Security.Claims.Claim>
+        {
+            new System.Security.Claims.Claim(ClaimTypes.NameIdentifier, idUser),
+            new System.Security.Claims.Claim("id_user", idUser),
+            new System.Security.Claims.Claim("username", username),
+            new System.Security.Claims.Claim(ClaimTypes.Name, name),
+            new System.Security.Claims.Claim(ClaimTypes.Role, role),
+            new System.Security.Claims.Claim("access_token", token ?? ""),
+            new System.Security.Claims.Claim("refresh_token", refreshToken ?? ""),
+            new System.Security.Claims.Claim("campaign", campaignName)
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+        // Redirect based on role
+        if (role.Equals("SUPERVISOR", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.Redirect("/supervisor");
+        }
+        return Results.Redirect("/asesor");
+    }
+    catch (Exception ex)
+    {
+        return Results.Redirect($"/login?error=Error del sistema: {Uri.EscapeDataString(ex.Message)}");
+    }
 });
 
-app.MapPost("/api/auth/logout", (HttpContext ctx) =>
+// Minimal API: Logout Endpoint
+app.MapGet("/logout-endpoint", async (HttpContext httpContext) =>
 {
-    ctx.Response.Cookies.Delete("authToken");
-    return Results.Ok();
+    await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.Redirect("/login");
 });
+
+// Map YARP Proxy Routes
+app.MapReverseProxy();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddInteractiveWebAssemblyRenderMode()
+    .AddAdditionalAssemblies(typeof(CRM.WebFrontend.Client._Imports).Assembly);
 
 app.Run();
-
-public class LoginRequest
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
-
-public class CookieHandler : DelegatingHandler
-{
-    private readonly IHttpContextAccessor _httpContextAccessor;
-    public CookieHandler(IHttpContextAccessor httpContextAccessor)
-    {
-        _httpContextAccessor = httpContextAccessor;
-    }
-
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-    {
-        var cookie = _httpContextAccessor.HttpContext?.Request.Cookies["authToken"];
-        if (!string.IsNullOrEmpty(cookie))
-        {
-            request.Headers.Add("Cookie", $"authToken={cookie}");
-        }
-        return base.SendAsync(request, cancellationToken);
-    }
-}
