@@ -1,0 +1,408 @@
+@page "/asesor/presales"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "ASESOR")]
+
+<PageTitle>Gestión de Pre-ventas - NYX CRM</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-primary mb-1">Gestión de Pre-ventas</h2>
+            <p class="text-muted mb-0">Administra tus prospectos, registra llamadas y deriva tickets.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" @onclick="OpenNewPreSaleModal">
+                <i class="bi bi-plus-circle me-2"></i> + Nueva Pre-venta
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-muted small">Buscar por Teléfono</label>
+                    <input type="tel" class="form-control rounded-3" placeholder="Ej. 987654321" @bind="filterPhone" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-muted small">Operador</label>
+                    <select class="form-select rounded-3" @bind="filterOperator">
+                        <option value="">Todos los operadores</option>
+                        <option value="Claro">Claro</option>
+                        <option value="Movistar">Movistar</option>
+                        <option value="Entel">Entel</option>
+                        <option value="Bitel">Bitel</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-muted small">Estado</label>
+                    <select class="form-select rounded-3" @bind="filterStatus">
+                        <option value="">Todos los estados</option>
+                        <option value="Nuevo">Nuevo</option>
+                        <option value="En Seguimiento">En Seguimiento</option>
+                        <option value="Promesa de Venta">Promesa de Venta</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-3 text-end">
+                <button class="btn btn-outline-secondary rounded-pill px-4 me-2" @onclick="ClearFilters">Limpiar</button>
+                <button class="btn btn-dark rounded-pill px-4" @onclick="ApplyFilters">Buscar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Resultados -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted">
+                        <tr>
+                            <th class="ps-4 py-3">Teléfono</th>
+                            <th>Operador</th>
+                            <th>Oferta Tentativa</th>
+                            <th>Estado</th>
+                            <th>Última Llamada</th>
+                            <th class="text-center pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (filteredPreSales.Any())
+                        {
+                            @foreach (var ps in filteredPreSales)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-bold">@ps.Phone</td>
+                                    <td><span class="badge bg-light text-dark border">@ps.Operator</span></td>
+                                    <td>@ps.Offer</td>
+                                    <td>
+                                        @if (ps.Status == "Nuevo")
+                                        {
+                                            <span class="badge bg-info rounded-pill px-3">@ps.Status</span>
+                                        }
+                                        else if (ps.Status == "En Seguimiento")
+                                        {
+                                            <span class="badge bg-warning text-dark rounded-pill px-3">@ps.Status</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success text-white rounded-pill px-3">@ps.Status</span>
+                                        }
+                                    </td>
+                                    <td class="text-muted small">@(ps.LastCall?.ToString("dd/MM/yyyy HH:mm") ?? "Sin contactar")</td>
+                                    <td class="text-center pe-4">
+                                        <button class="btn btn-sm btn-outline-success rounded-pill me-2" @onclick="() => OpenCallModal(ps)">
+                                            📞 Llamar
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary rounded-pill" @onclick="() => OpenDeriveModal(ps)">
+                                            ↪️ Derivar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    No se encontraron pre-ventas activas con esos filtros.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Nueva Pre-Venta -->
+@if (showNewPreSaleModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold">Registrar Nueva Pre-venta</h5>
+                    <button type="button" class="btn-close" @onclick="CloseNewPreSaleModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Teléfono Cliente</label>
+                        <input type="tel" class="form-control rounded-3" @bind="newPreSale.Phone" placeholder="Ingrese número" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Operador Actual</label>
+                        <select class="form-select rounded-3" @bind="newPreSale.Operator">
+                            <option value="">Seleccione...</option>
+                            <option value="Claro">Claro</option>
+                            <option value="Movistar">Movistar</option>
+                            <option value="Entel">Entel</option>
+                            <option value="Bitel">Bitel</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Oferta Tentativa</label>
+                        <textarea class="form-control rounded-3" rows="3" @bind="newPreSale.Offer" placeholder="Plan ofrecido, descuento, etc."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="CloseNewPreSaleModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="GuardarPreVentaAsync" disabled="@isSaving">
+                        @(isSaving ? "Guardando..." : "Guardar Pre-venta")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal: Registrar Llamada -->
+@if (showCallModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold">Registrar Llamada</h5>
+                    <button type="button" class="btn-close" @onclick="CloseCallModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-4">Llamando al: <strong class="text-dark fs-5">@selectedPreSale?.Phone</strong></p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Resultado de Llamada</label>
+                        <select class="form-select rounded-3" @bind="callRecord.Status">
+                            <option value="">Seleccione resultado...</option>
+                            <option value="Contestó - Interesado">Contestó - Interesado</option>
+                            <option value="Contestó - No Interesado">Contestó - No Interesado</option>
+                            <option value="Buzón de Voz">Buzón de Voz</option>
+                            <option value="Número Equivocado">Número Equivocado</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Duración (minutos)</label>
+                        <input type="number" class="form-control rounded-3" @bind="callRecord.DurationMins" min="0" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Notas de la llamada</label>
+                        <textarea class="form-control rounded-3" rows="3" @bind="callRecord.Notes" placeholder="Detalles de la conversación..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="CloseCallModal">Cancelar</button>
+                    <button type="button" class="btn btn-success rounded-pill px-4" @onclick="GuardarLlamadaAsync" disabled="@isSaving">
+                        @(isSaving ? "Registrando..." : "Guardar Registro")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal: Derivar -->
+@if (showDeriveModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold text-primary">Derivar Pre-venta</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDeriveModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info rounded-3">
+                        Estás derivando el ticket del teléfono <strong>@selectedPreSale?.Phone</strong>.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Asesor Destino</label>
+                        <select class="form-select rounded-3" @bind="deriveData.TargetAdviserId">
+                            <option value="">Seleccione un asesor...</option>
+                            @foreach (var adv in mockAdvisers)
+                            {
+                                <option value="@adv.Id">@adv.Name - @adv.Campaign</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Motivo de derivación <span class="text-danger">*</span></label>
+                        <textarea class="form-control rounded-3" rows="4" @bind="deriveData.Context" placeholder="Explica por qué estás derivando este ticket (Obligatorio)..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="CloseDeriveModal">Cancelar</button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="DerivarAsync" disabled="@(isSaving || string.IsNullOrWhiteSpace(deriveData.Context))">
+                        @(isSaving ? "Derivando..." : "Confirmar Derivación")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // --- Modelos DTO Simulados ---
+    public class PreSaleDto
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Phone { get; set; } = "";
+        public string Operator { get; set; } = "";
+        public string Offer { get; set; } = "";
+        public string Status { get; set; } = "Nuevo";
+        public DateTime? LastCall { get; set; }
+    }
+
+    public class CallRecordDto
+    {
+        public string Status { get; set; } = "";
+        public int DurationMins { get; set; } = 0;
+        public string Notes { get; set; } = "";
+    }
+
+    public class DeriveDto
+    {
+        public string TargetAdviserId { get; set; } = "";
+        public string Context { get; set; } = "";
+    }
+
+    public class AdviserDto
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Campaign { get; set; } = "";
+    }
+
+    // --- Estado de la UI ---
+    private List<PreSaleDto> allPreSales = new();
+    private List<PreSaleDto> filteredPreSales = new();
+    
+    private List<AdviserDto> mockAdvisers = new()
+    {
+        new AdviserDto { Id = "1", Name = "Carlos Mendoza", Campaign = "Portabilidad Claro" },
+        new AdviserDto { Id = "2", Name = "Ana Ríos", Campaign = "Retención Movistar" },
+        new AdviserDto { Id = "3", Name = "Jorge Ruiz", Campaign = "Portabilidad Entel" }
+    };
+
+    private bool isSaving = false;
+
+    // Filtros
+    private string filterPhone = "";
+    private string filterOperator = "";
+    private string filterStatus = "";
+
+    // Modales
+    private bool showNewPreSaleModal = false;
+    private bool showCallModal = false;
+    private bool showDeriveModal = false;
+
+    private PreSaleDto newPreSale = new();
+    private PreSaleDto? selectedPreSale = null;
+    private CallRecordDto callRecord = new();
+    private DeriveDto deriveData = new();
+
+    protected override void OnInitialized()
+    {
+        // Generar mock data
+        allPreSales = new List<PreSaleDto>
+        {
+            new PreSaleDto { Phone = "987654321", Operator = "Claro", Offer = "Plan MAX Ilimitado S/ 69.90", Status = "Nuevo" },
+            new PreSaleDto { Phone = "912345678", Operator = "Movistar", Offer = "Renovación Equipo - 50% dscto", Status = "En Seguimiento", LastCall = DateTime.Now.AddDays(-1) },
+            new PreSaleDto { Phone = "999888777", Operator = "Entel", Offer = "Portabilidad Plan S/ 45.90", Status = "Promesa de Venta", LastCall = DateTime.Now.AddHours(-2) }
+        };
+        filteredPreSales = allPreSales.ToList();
+    }
+
+    // --- Lógica de Filtros ---
+    private void ApplyFilters()
+    {
+        filteredPreSales = allPreSales.Where(p => 
+            (string.IsNullOrWhiteSpace(filterPhone) || p.Phone.Contains(filterPhone)) &&
+            (string.IsNullOrWhiteSpace(filterOperator) || p.Operator == filterOperator) &&
+            (string.IsNullOrWhiteSpace(filterStatus) || p.Status == filterStatus)
+        ).ToList();
+    }
+
+    private void ClearFilters()
+    {
+        filterPhone = "";
+        filterOperator = "";
+        filterStatus = "";
+        filteredPreSales = allPreSales.ToList();
+    }
+
+    // --- Lógica de Nueva Pre-venta ---
+    private void OpenNewPreSaleModal()
+    {
+        newPreSale = new PreSaleDto();
+        showNewPreSaleModal = true;
+    }
+
+    private void CloseNewPreSaleModal() => showNewPreSaleModal = false;
+
+    private async Task GuardarPreVentaAsync()
+    {
+        isSaving = true;
+        await Task.Delay(800); // Simular llamada HTTP
+        
+        allPreSales.Insert(0, newPreSale);
+        ApplyFilters();
+        
+        isSaving = false;
+        showNewPreSaleModal = false;
+    }
+
+    // --- Lógica de Llamada ---
+    private void OpenCallModal(PreSaleDto preSale)
+    {
+        selectedPreSale = preSale;
+        callRecord = new CallRecordDto();
+        showCallModal = true;
+    }
+
+    private void CloseCallModal() => showCallModal = false;
+
+    private async Task GuardarLlamadaAsync()
+    {
+        isSaving = true;
+        await Task.Delay(800); // Simular llamada HTTP
+        
+        if (selectedPreSale != null)
+        {
+            selectedPreSale.LastCall = DateTime.Now;
+            selectedPreSale.Status = "En Seguimiento";
+        }
+        ApplyFilters();
+        
+        isSaving = false;
+        showCallModal = false;
+    }
+
+    // --- Lógica de Derivación ---
+    private void OpenDeriveModal(PreSaleDto preSale)
+    {
+        selectedPreSale = preSale;
+        deriveData = new DeriveDto();
+        showDeriveModal = true;
+    }
+
+    private void CloseDeriveModal() => showDeriveModal = false;
+
+    private async Task DerivarAsync()
+    {
+        if (string.IsNullOrWhiteSpace(deriveData.Context)) return;
+
+        isSaving = true;
+        await Task.Delay(800); // Simular HTTP POST
+
+        if (selectedPreSale != null)
+        {
+            allPreSales.Remove(selectedPreSale);
+            ApplyFilters();
+        }
+        
+        isSaving = false;
+        showDeriveModal = false;
+    }
+}
