@@ -23,7 +23,7 @@
     background-color: #f8f9fa; 
 }
 
-#wrapper.toggled #sidebar-wrapper {
+#wrapper.collapsed #sidebar-wrapper {
     margin-left: -260px;
 }
 
@@ -31,7 +31,7 @@
     #sidebar-wrapper {
         margin-left: -260px;
     }
-    #wrapper.toggled #sidebar-wrapper {
+    #wrapper.collapsed #sidebar-wrapper {
         margin-left: 0;
     }
 }

@@ -26,6 +26,37 @@ public class LoginUseCase
 
     public async Task<LoginResponse?> ExecuteAsync(LoginRequest request, string ipAddress, string userAgent, CancellationToken ct = default)
     {
+        bool isDevMode = string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase);
+        
+        // Developer fallback bypass as per README (only for generic test users)
+        if (isDevMode && request.Password == "password123")
+        {
+            if (request.Username == "test.supervisor")
+            {
+                var devUser = new CRM.ApiHub.Domain.Entities.User { IdUser = -998, Username = request.Username };
+                var devToken = _tokenGenerator.GenerateToken(devUser, "SUPERVISOR");
+                var devRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+                _refreshTokenStore.SaveToken(devRefreshToken, devUser.IdUser, DateTime.UtcNow.AddDays(7), ipAddress, userAgent);
+                return new LoginResponse(devToken, devRefreshToken, request.Username, "SUPERVISOR");
+            }
+            if (request.Username == "test.asesor")
+            {
+                var devUser = new CRM.ApiHub.Domain.Entities.User { IdUser = -999, Username = request.Username };
+                var devToken = _tokenGenerator.GenerateToken(devUser, "ASESOR");
+                var devRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+                _refreshTokenStore.SaveToken(devRefreshToken, devUser.IdUser, DateTime.UtcNow.AddDays(7), ipAddress, userAgent);
+                return new LoginResponse(devToken, devRefreshToken, request.Username, "ASESOR");
+            }
+            if (request.Username == "test.backoffice")
+            {
+                var devUser = new CRM.ApiHub.Domain.Entities.User { IdUser = -1000, Username = request.Username };
+                var devToken = _tokenGenerator.GenerateToken(devUser, "BACKOFFICE");
+                var devRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+                _refreshTokenStore.SaveToken(devRefreshToken, devUser.IdUser, DateTime.UtcNow.AddDays(7), ipAddress, userAgent);
+                return new LoginResponse(devToken, devRefreshToken, request.Username, "BACKOFFICE");
+            }
+        }
+
         // 1. Obtener el usuario por username
         var user = await _userRepository.GetByUsernameAsync(request.Username, ct);
         if (user == null)
@@ -34,7 +65,6 @@ public class LoginUseCase
         }
 
         // 2. Verificar la contraseña usando BCrypt (con fallback de desarrollo 'password123' solo en ambiente Development)
-        bool isDevMode = string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase);
         bool isPasswordValid = (isDevMode && request.Password == "password123") || BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
         if (!isPasswordValid)
         {

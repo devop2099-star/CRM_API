@@ -24,6 +24,18 @@
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script>
+        document.addEventListener("click", function(e) {
+            var toggleBtn = e.target.closest("#menu-toggle");
+            if(toggleBtn) {
+                e.preventDefault();
+                var wrapper = document.getElementById("wrapper");
+                if(wrapper) {
+                    wrapper.classList.toggle("collapsed");
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>
