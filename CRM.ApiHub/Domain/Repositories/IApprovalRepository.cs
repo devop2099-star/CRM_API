@@ -6,6 +6,7 @@ namespace CRM.ApiHub.Domain.Repositories
     public interface IApprovalRepository
     {
         Task<long> RegisterApprovalAsync(ApprovalDto approval);
-        // Podrías necesitar un método para actualizar el estado de la preventa/orden
+        Task<bool> UpdateApprovalAsync(long idApproval, string status, string comments, long authorizedBy);
+        Task<ApprovalDto?> GetApprovalByIdAsync(long idApproval);
     }
 }

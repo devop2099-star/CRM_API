@@ -9,7 +9,7 @@ namespace CRM.ApiHub.Api.Controllers;
 public record UpdateFormStatusRequest(string Status, long ValidatedBy);
 
 [ApiController]
-[Route("api/v1/forms")]
+[Route("api/forms")]
 [Authorize] 
 public class FormController : ControllerBase
 {
@@ -51,7 +51,7 @@ public class FormController : ControllerBase
         if (fields == null || !fields.Any())
             return BadRequest("La lista de campos no puede estar vacía.");
 
-        await _orderDataRepository.SaveOrderDataAsync(idOrder, idForm, fields);
+        await _formRepository.SaveOrderDataAsync(idOrder, idForm, fields);
         return Ok(new { message = "Datos del formulario guardados exitosamente." });
     }
 

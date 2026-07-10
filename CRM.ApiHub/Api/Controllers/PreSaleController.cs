@@ -3,6 +3,7 @@ using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using CRM.ApiHub.Api.Filters;
+using System.Security.Claims;
 
 namespace CRM.ApiHub.Api.Controllers;
 
@@ -10,6 +11,20 @@ namespace CRM.ApiHub.Api.Controllers;
 public record CallLogRequest(string CallLog);
 public record AssignRequest(int ToUserId, string Context);
 public record ConvertRequest(int UserId);
+public record PreSaleCreateDto(
+    long IdCmpg,
+    string? Phone,
+    string? Operator,
+    string? FirstName,
+    string? LastName,
+    string? Address,
+    string? Province,
+    string? CoverageStatus,
+    long IdStatus,
+    long OwnerUserId,
+    long CurrentUserId,
+    string? Notes
+);
 
 [Authorize]
 [ApiController]
@@ -31,8 +46,24 @@ public class PreSaleController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] LeadPreSale preSale)
+    public async Task<IActionResult> Create([FromBody] PreSaleCreateDto dto)
     {
+        var preSale = new LeadPreSale
+        {
+            IdCmpg = dto.IdCmpg,
+            Phone = dto.Phone,
+            Operator = dto.Operator,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            Address = dto.Address,
+            Province = dto.Province,
+            CoverageStatus = dto.CoverageStatus,
+            IdStatus = dto.IdStatus,
+            OwnerUserId = dto.OwnerUserId,
+            CurrentUserId = dto.CurrentUserId,
+            Notes = dto.Notes
+        };
+
         var id = await _repository.CreateAsync(preSale);
         return CreatedAtAction(nameof(GetByUser), new { userId = preSale.CurrentUserId }, new { id });
     }
@@ -40,7 +71,14 @@ public class PreSaleController : ControllerBase
     [HttpPost("{id}/calls")]
     public async Task<IActionResult> AddCallLog(int id, [FromBody] CallLogRequest request)
     {
-        var result = await _repository.AddCallLogAsync(id, request.CallLog);
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
+        long userId = 1;
+        if (userIdClaim != null && long.TryParse(userIdClaim.Value, out long parsedId))
+        {
+            userId = parsedId;
+        }
+
+        var result = await _repository.AddCallLogAsync(id, request.CallLog, userId);
         if (!result) return BadRequest(new { message = "No se pudo registrar el log de la llamada." });
         return Ok(new { message = "Log de llamada registrado con éxito." });
     }
@@ -57,7 +95,7 @@ public class PreSaleController : ControllerBase
     public async Task<IActionResult> Convert(int id, [FromBody] ConvertRequest request)
     {
         var result = await _repository.ConvertAsync(id, new { UserId = request.UserId });
-        if (!result) return BadRequest(new { message = "No se pudo convertir la pre-venta." });
+        if (!result) return BadRequest(new { message = "No se pudo convertír la pre-venta." });
         return Ok(new { message = "Pre-venta convertida a cliente con éxito." });
     }
 }

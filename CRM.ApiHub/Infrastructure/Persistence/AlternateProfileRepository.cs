@@ -25,5 +25,18 @@ namespace CRM.ApiHub.Infrastructure.Persistence
             using var connection = await _dbConnectionFactory.CreateConnectionAsync();
             return await connection.ExecuteScalarAsync<long>(sql, entity);
         }
+
+        public async Task<AlternateProfile?> GetByOrderIdAsync(long idOrder)
+        {
+            var sql = @"SELECT id_alternate AS IdAlternate, id_order AS IdOrder, alternate_type AS AlternateType, 
+                               alternate_data AS AlternateData, original_data AS OriginalData, reason AS Reason, 
+                               created_by AS CreatedBy, authorized_by AS AuthorizedBy, is_active AS IsActive, 
+                               created_at AS CreatedAt 
+                        FROM sales_service.order_alternate_profile 
+                        WHERE id_order = @IdOrder AND is_active = true LIMIT 1;";
+            
+            using var connection = await _dbConnectionFactory.CreateConnectionAsync();
+            return await connection.QueryFirstOrDefaultAsync<AlternateProfile>(sql, new { IdOrder = idOrder });
+        }
     }
 }

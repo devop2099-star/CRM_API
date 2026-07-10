@@ -85,4 +85,42 @@ public class IncidentRepository : IIncidentRepository
 
         return await connection.QueryAsync<KbArticleSuggestion>(sql, new { IdIncident = idIncident });
     }
+
+    public async Task<OrderIncident?> GetByIdAsync(long id)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        const string sql = "SELECT * FROM sales_service.order_incident WHERE id_order_incident = @Id;";
+        return await connection.QueryFirstOrDefaultAsync<OrderIncident>(sql, new { Id = id });
+    }
+
+    public async Task<bool> UpdateAsync(long id, string customName, string customDescription, string? customSolution, string? assignedToRole, DateTime? dueAt)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        const string sql = @"
+            UPDATE sales_service.order_incident 
+            SET custom_name = @CustomName, 
+                custom_description = @CustomDescription, 
+                custom_solution = @CustomSolution, 
+                assigned_to_role = @AssignedToRole, 
+                due_at = @DueAt 
+            WHERE id_order_incident = @Id;";
+        var rowsAffected = await connection.ExecuteAsync(sql, new 
+        { 
+            Id = id, 
+            CustomName = customName, 
+            CustomDescription = customDescription, 
+            CustomSolution = customSolution, 
+            AssignedToRole = assignedToRole, 
+            DueAt = dueAt 
+        });
+        return rowsAffected > 0;
+    }
+
+    public async Task<bool> DeleteAsync(long id)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        const string sql = "DELETE FROM sales_service.order_incident WHERE id_order_incident = @Id;";
+        var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id });
+        return rowsAffected > 0;
+    }
 }

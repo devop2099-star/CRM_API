@@ -9,6 +9,9 @@ public interface IIncidentRepository
     Task<long> CreateAsync(OrderIncident incident);
     Task CreateResponseAsync(long idOrderIncident, string responseText, string responseType, long respondedBy);
     Task ResolveAsync(long idOrderIncident, string notes, long resolvedBy);
+    Task<OrderIncident?> GetByIdAsync(long id);
+    Task<bool> UpdateAsync(long id, string customName, string customDescription, string? customSolution, string? assignedToRole, DateTime? dueAt);
+    Task<bool> DeleteAsync(long id);
     
     Task<IEnumerable<KbArticleSuggestion>> GetKbSuggestionsAsync(long idIncident);
 }

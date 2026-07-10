@@ -5,7 +5,7 @@ using CRM.ApiHub.Domain.Repositories;
 namespace CRM.ApiHub.Api.Controllers;
 
 [ApiController]
-[Route("api/v1/notifications")]
+[Route("api/notifications")]
 [Authorize]
 public class NotificationController : ControllerBase
 {

@@ -1,11 +1,21 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CRM.ApiHub.Domain.Repositories; 
-using CRM.ApiHub.Domain.DTOs;         
 using CRM.ApiHub.Domain.Entities;     
 
+namespace CRM.ApiHub.Api.Controllers;
+
+public class AlternateProfileRequestDto
+{
+    public string AlternateType { get; set; } = null!;
+    public string AlternateData { get; set; } = null!; // Representing jsonb as string
+    public string OriginalData { get; set; } = null!;  // Representing jsonb as string
+    public string Reason { get; set; } = null!;
+    public long CreatedBy { get; set; }
+}
+
 [ApiController]
-[Route("api/v1/alternate-profiles")]
+[Route("api/orders")]
 [Authorize]
 public class AlternateProfileController : ControllerBase
 {
@@ -16,12 +26,14 @@ public class AlternateProfileController : ControllerBase
         _repository = repository;
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] AlternateProfileDto dto)
+    [HttpPost("{id:long}/alternate-profile")]
+    public async Task<IActionResult> Create(long id, [FromBody] AlternateProfileRequestDto dto)
     {
-        // Mapea tu DTO a tu entidad de dominio
-        var profile = new AlternateProfile {
-            IdOrder = dto.IdOrder,
+        if (dto == null) return BadRequest("Datos de perfil alterno inválidos.");
+
+        var profile = new AlternateProfile 
+        {
+            IdOrder = id,
             AlternateType = dto.AlternateType,
             AlternateData = dto.AlternateData,
             OriginalData = dto.OriginalData,
@@ -29,14 +41,18 @@ public class AlternateProfileController : ControllerBase
             CreatedBy = dto.CreatedBy
         };
 
-        var id = await _repository.CreateAsync(profile);
-        return CreatedAtAction(nameof(GetById), new { id }, new { message = "Ficha alterna creada.", id });
+        var alternateId = await _repository.CreateAsync(profile);
+        return CreatedAtAction(nameof(GetByOrderId), new { id = id }, new { message = "Ficha alterna creada.", id = alternateId });
     }
 
-[HttpGet("{id}")]
-public async Task<IActionResult> GetById(long id)
-{
-    // Por ahora, esto cumple el contrato para que CreatedAtAction funcione
-    return Ok(new { id, message = "Endpoint de lectura operativo" });
-}
+    [HttpGet("{id:long}/alternate-profile")]
+    public async Task<IActionResult> GetByOrderId(long id)
+    {
+        var profile = await _repository.GetByOrderIdAsync(id);
+        if (profile == null)
+        {
+            return NotFound(new { message = "Ficha alterna no encontrada para esta orden." });
+        }
+        return Ok(profile);
+    }
 }

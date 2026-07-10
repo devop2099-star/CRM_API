@@ -45,5 +45,45 @@ namespace CRM.ApiHub.Infrastructure.Persistence
                 RequestedBy = finalRequestedBy
             });
         }
+
+        public async Task<bool> UpdateApprovalAsync(long idApproval, string status, string comments, long authorizedBy)
+        {
+            var sql = @"UPDATE sales_service.sales_order_approval 
+                        SET status = @Status, 
+                            approved_by = @AuthorizedBy,
+                            approval_reason = CASE WHEN @Status = 'APPROVED' THEN @Comments ELSE approval_reason END,
+                            rejection_reason = CASE WHEN @Status = 'REJECTED' THEN @Comments ELSE rejection_reason END,
+                            resolved_at = NOW() 
+                        WHERE id_approval = @IdApproval;";
+            
+            using var connection = await _dbConnectionFactory.CreateConnectionAsync();
+            var rowsAffected = await connection.ExecuteAsync(sql, new 
+            { 
+                IdApproval = idApproval, 
+                Status = status, 
+                Comments = comments, 
+                AuthorizedBy = authorizedBy 
+            });
+            return rowsAffected > 0;
+        }
+
+        public async Task<ApprovalDto?> GetApprovalByIdAsync(long idApproval)
+        {
+            var sql = @"SELECT id_order AS ""IdOrder"", approved_by AS ""AuthorizedBy"", status AS ""Status"", 
+                               approval_reason AS ""ApprovalReason"", rejection_reason AS ""RejectionReason""
+                        FROM sales_service.sales_order_approval 
+                        WHERE id_approval = @IdApproval;";
+            using var connection = await _dbConnectionFactory.CreateConnectionAsync();
+            var result = await connection.QueryFirstOrDefaultAsync<dynamic>(sql, new { IdApproval = idApproval });
+            if (result == null) return null;
+            
+            return new ApprovalDto
+            {
+                IdOrder = result.IdOrder,
+                AuthorizedBy = result.AuthorizedBy,
+                IsApproved = result.Status == "APPROVED",
+                Comments = result.Status == "APPROVED" ? (result.ApprovalReason ?? "") : (result.RejectionReason ?? "")
+            };
+        }
     }
 }
