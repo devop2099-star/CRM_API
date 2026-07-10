@@ -18,17 +18,20 @@ public class SalesOrderController : ControllerBase
     private readonly GetSalesOrderByIdUseCase _getSalesOrderByIdUseCase;
     private readonly CreateSalesOrderUseCase _createSalesOrderUseCase;
     private readonly UpdateSalesOrderStatusUseCase _updateSalesOrderStatusUseCase;
+    private readonly GetSalesOrderHistoryUseCase _getSalesOrderHistoryUseCase;
 
     public SalesOrderController(
         GetSalesOrdersUseCase getSalesOrdersUseCase,
         GetSalesOrderByIdUseCase getSalesOrderByIdUseCase,
         CreateSalesOrderUseCase createSalesOrderUseCase,
-        UpdateSalesOrderStatusUseCase updateSalesOrderStatusUseCase)
+        UpdateSalesOrderStatusUseCase updateSalesOrderStatusUseCase,
+        GetSalesOrderHistoryUseCase getSalesOrderHistoryUseCase)
     {
         _getSalesOrdersUseCase = getSalesOrdersUseCase;
         _getSalesOrderByIdUseCase = getSalesOrderByIdUseCase;
         _createSalesOrderUseCase = createSalesOrderUseCase;
         _updateSalesOrderStatusUseCase = updateSalesOrderStatusUseCase;
+        _getSalesOrderHistoryUseCase = getSalesOrderHistoryUseCase;
     }
 
     [HttpGet]
@@ -60,6 +63,20 @@ public class SalesOrderController : ControllerBase
             return NotFound(new { message = "Orden de venta no encontrada." });
         }
         return Ok(order);
+    }
+
+    [HttpGet("{id:long}/history")]
+    public async Task<IActionResult> GetOrderHistory(long id, CancellationToken ct)
+    {
+        try
+        {
+            var history = await _getSalesOrderHistoryUseCase.ExecuteAsync(id, ct);
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al obtener el historial de la orden.", details = ex.Message });
+        }
     }
 
     [HttpPost]

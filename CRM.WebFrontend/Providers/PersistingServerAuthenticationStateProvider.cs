@@ -17,7 +17,7 @@ public class PersistingServerAuthenticationStateProvider : ServerAuthenticationS
     {
         _state = state;
         AuthenticationStateChanged += OnAuthenticationStateChanged;
-        _subscription = state.RegisterOnPersisting(OnPersistingAsync, RenderMode.InteractiveServer);
+        _subscription = state.RegisterOnPersisting(OnPersistingAsync, RenderMode.InteractiveWebAssembly);
     }
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> task)

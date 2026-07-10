@@ -22,6 +22,10 @@
             {
                 Navigation.NavigateTo("/supervisor");
             }
+            else if (user.IsInRole("BACKOFFICE"))
+            {
+                Navigation.NavigateTo("/backoffice/dashboard");
+            }
             else
             {
                 Navigation.NavigateTo("/asesor");

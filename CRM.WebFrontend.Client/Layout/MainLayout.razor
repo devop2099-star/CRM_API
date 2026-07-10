@@ -1,13 +1,44 @@
 @inherits LayoutComponentBase
 
-<div class="app-layout">
-    <main>
-        @Body
-    </main>
-</div>
+<div class="d-flex" id="wrapper" style="min-height: 100vh;">
+    <!-- Sidebar -->
+    <div class="bg-dark text-white border-end" id="sidebar-wrapper" style="width: 260px; flex-shrink: 0;">
+        <div class="sidebar-heading p-3 border-bottom fw-bold d-flex align-items-center">
+            <span class="me-2 fs-4 text-primary">✦</span> NYX CRM
+        </div>
+        <div class="list-group list-group-flush mt-3">
+            <NavMenu />
+        </div>
+    </div>
+    <!-- /#sidebar-wrapper -->
 
-<div id="blazor-error-ui" data-nosnippet>
-    Ocurrió un error inesperado.
-    <a href="." class="reload">Recargar</a>
-    <span class="dismiss">🗙</span>
+    <!-- Page Content -->
+    <div id="page-content-wrapper" class="w-100" style="flex: 1; min-width: 0;">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom px-4 py-3 shadow-sm">
+            <button class="btn btn-light border-0 shadow-sm" id="menu-toggle">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="ms-auto d-flex align-items-center">
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="d-flex align-items-center me-4">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 35px; height: 35px; font-weight: bold;">
+                                @(context.User.Identity?.Name?.FirstOrDefault().ToString().ToUpper() ?? "U")
+                            </div>
+                            <span class="fw-bold text-dark">@context.User.Identity?.Name</span>
+                        </div>
+                        <a href="/logout-endpoint" class="btn btn-outline-danger btn-sm px-3 rounded-pill">Cerrar Sesión</a>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a href="/login" class="btn btn-primary btn-sm px-4 rounded-pill">Iniciar Sesión</a>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </nav>
+
+        <div class="container-fluid p-4">
+            @Body
+        </div>
+    </div>
+    <!-- /#page-content-wrapper -->
 </div>

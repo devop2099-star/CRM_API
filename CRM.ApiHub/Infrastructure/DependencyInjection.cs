@@ -60,6 +60,7 @@ public static class DependencyInjection
         services.AddScoped<GetSalesOrderByIdUseCase>();
         services.AddScoped<CreateSalesOrderUseCase>();
         services.AddScoped<UpdateSalesOrderStatusUseCase>();
+        services.AddScoped<GetSalesOrderHistoryUseCase>();
 
         // Document Use Cases
         services.AddScoped<GetDocumentsByOrderUseCase>();
