@@ -1,4 +1,4 @@
-using CRM.WebFrontend.Components;
+using CRM.WebFrontend.Services;
 using CRM.WebFrontend.Server.Components;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -60,9 +60,9 @@ builder.Services.AddReverseProxy()
         });
     });
 
+builder.Services.AddScoped<IBackofficeService, MockBackofficeService>();
 // Agregar servicios de MudBlazor
 builder.Services.AddMudServices();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -101,10 +101,19 @@ app.MapPost("/login-endpoint", async (HttpContext httpContext, IHttpClientFactor
         var payload = JsonSerializer.Serialize(new { username, password });
         var content = new StringContent(payload, Encoding.UTF8, "application/json");
 
+        Console.WriteLine($"[LOGIN-DEBUG] Sending login request for user: '{username}'");
+        Console.WriteLine($"[LOGIN-DEBUG] Payload: {payload}");
+        Console.WriteLine($"[LOGIN-DEBUG] Backend URL: {client.BaseAddress}/api/auth/login");
+
         var response = await client.PostAsync("/api/auth/login", content);
+
+        Console.WriteLine($"[LOGIN-DEBUG] Response status: {response.StatusCode} ({(int)response.StatusCode})");
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($"[LOGIN-DEBUG] Response body: {responseBody}");
+
         if (!response.IsSuccessStatusCode)
         {
-            return Results.Redirect("/login?error=Credenciales incorrectas");
+            return Results.Redirect($"/login?error=Credenciales incorrectas (API: {(int)response.StatusCode})");
         }
 
         var responseBytes = await response.Content.ReadAsByteArrayAsync();
@@ -166,6 +175,10 @@ app.MapPost("/login-endpoint", async (HttpContext httpContext, IHttpClientFactor
         if (role.Equals("SUPERVISOR", StringComparison.OrdinalIgnoreCase))
         {
             return Results.Redirect("/supervisor");
+        }
+        if (role.Equals("BACKOFFICE", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.Redirect("/backoffice/dashboard");
         }
         return Results.Redirect("/asesor");
     }

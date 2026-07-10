@@ -1,6 +1,6 @@
 @inherits LayoutComponentBase
 
-<div class="d-flex @(sidebarToggled ? "toggled" : "")" id="wrapper" style="min-height: 100vh;">
+<div class="d-flex" id="wrapper" style="min-height: 100vh;">
     <!-- Sidebar -->
     <div class="bg-dark text-white border-end" id="sidebar-wrapper" style="width: 260px; flex-shrink: 0;">
         <div class="sidebar-heading p-3 border-bottom fw-bold d-flex align-items-center">
@@ -15,7 +15,7 @@
     <!-- Page Content -->
     <div id="page-content-wrapper" class="w-100" style="flex: 1; min-width: 0;">
         <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom px-4 py-3 shadow-sm">
-            <button class="btn btn-light border-0 shadow-sm" id="menu-toggle" @onclick="ToggleSidebar">
+            <button class="btn btn-light border-0 shadow-sm" id="menu-toggle">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="ms-auto d-flex align-items-center">
@@ -42,12 +42,3 @@
     </div>
     <!-- /#page-content-wrapper -->
 </div>
-
-@code {
-    private bool sidebarToggled = false;
-
-    private void ToggleSidebar()
-    {
-        sidebarToggled = !sidebarToggled;
-    }
-}

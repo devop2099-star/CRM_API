@@ -212,12 +212,12 @@
 
         <!-- Panel Derecho (Formulario Minimalista para Minimal API) -->
         <div class="login-right">
-            <h2 class="welcome-text">Bienvenido de vuelta</h2>
-            <p class="subtitle-text">Ingresa tus credenciales para acceder a tu panel.</p>
+            <h2 class="welcome-text">Welcome Back</h2>
+            <p class="subtitle-text">Enter your credentials to access your dashboard.</p>
 
             <form action="/login-endpoint" method="post" class="w-100">
-                <input type="text" name="username" class="native-input" placeholder="Nombre de usuario" required autocomplete="username" />
-                <input type="password" name="password" class="native-input" placeholder="Contraseña" required autocomplete="current-password" />
+                <input type="text" name="username" class="native-input" placeholder="Username" required autocomplete="username" />
+                <input type="password" name="password" class="native-input" placeholder="Password" required autocomplete="current-password" />
 
                 @if (!string.IsNullOrEmpty(ErrorMessage))
                 {

@@ -30,4 +30,5 @@ public interface ISalesOrderRepository
         CancellationToken ct = default);
 
     Task<IEnumerable<SalesOrderHistoryEventRaw>> GetOrderHistoryTimelineAsync(long idOrder, CancellationToken ct = default);
+    Task<SalesOrder?> GetByLeadIdAsync(long idLead, CancellationToken ct = default);
 }
