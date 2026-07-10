@@ -390,7 +390,13 @@
     // --- Lógica de Nueva Pre-Venta ---
     private void OpenNewModal()
     {
-        newPreSale = new() { CoverageStatus = "PENDIENTE", CurrentUserId = currentUserId, OwnerUserId = currentUserId };
+        newPreSale = new() { 
+            CoverageStatus = "PENDIENTE", 
+            CurrentUserId = currentUserId, 
+            OwnerUserId = currentUserId,
+            IdCmpg = 1, // Por defecto campaña 1
+            IdStatus = 1 // Por defecto estado 1 (ej. Pendiente/Nuevo)
+        };
         showNewModal = true;
     }
     private void CloseNewModal() => showNewModal = false;
