@@ -39,16 +39,23 @@ public class PreSaleRepository : IPreSaleRepository
         return await connection.ExecuteScalarAsync<int>(sql, preSale);
     }
 
-    public async Task<bool> AddCallLogAsync(int idPresale, string callLog)
+    public async Task<bool> AddCallLogAsync(int idPresale, int userId, string callLog)
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
-            INSERT INTO lead_service.lead_call_log (id_presale, notes, register)
-            VALUES (@PreSaleId, @LogDetails, @CreatedAt);";
+            INSERT INTO lead_service.lead_call_log (id_presale, id_user, notes, register, call_number)
+            VALUES (
+                @PreSaleId, 
+                @UserId,
+                @LogDetails, 
+                @CreatedAt, 
+                COALESCE((SELECT MAX(call_number) FROM lead_service.lead_call_log WHERE id_presale = @PreSaleId), 0) + 1
+            );";
 
         var rowsAffected = await connection.ExecuteAsync(sql, new 
         { 
             PreSaleId = idPresale, 
+            UserId = userId,
             LogDetails = callLog,
             CreatedAt = DateTime.UtcNow
         });

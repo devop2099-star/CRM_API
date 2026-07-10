@@ -6,7 +6,7 @@ public interface IPreSaleRepository
 {
     Task<IEnumerable<LeadPreSale>> GetByUserAsync(int userId);
     Task<int> CreateAsync(LeadPreSale preSale);
-    Task<bool> AddCallLogAsync(int idPresale, string callLog);
+    Task<bool> AddCallLogAsync(int idPresale, int userId, string callLog);
     Task<bool> AssignAsync(int idPresale, int toUserId, string context);
     Task<bool> ConvertAsync(int idPresale, dynamic paramsData);
 }

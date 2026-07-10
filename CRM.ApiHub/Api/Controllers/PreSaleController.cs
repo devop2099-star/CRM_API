@@ -38,7 +38,10 @@ public class PreSaleController : ControllerBase
     [HttpPost("{id}/calls")]
     public async Task<IActionResult> AddCallLog(int id, [FromBody] string callLog)
     {
-        var result = await _repository.AddCallLogAsync(id, callLog);
+        var userIdStr = User.FindFirst("id_user")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
+
+        var result = await _repository.AddCallLogAsync(id, userId, callLog);
         if (!result) return BadRequest(new { message = "No se pudo registrar el log de la llamada." });
         return Ok(new { message = "Log de llamada registrado con éxito." });
     }

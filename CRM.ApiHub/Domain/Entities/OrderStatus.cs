@@ -8,7 +8,7 @@ public class OrderStatus
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("id")]
+    [Column("id_status")]
     public int Id { get; set; }
 
     [Column("name")]
