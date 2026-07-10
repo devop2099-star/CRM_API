@@ -28,7 +28,7 @@ public record PreSaleCreateDto(
 
 [Authorize]
 [ApiController]
-[Route("presales")]
+[Route("api/presales")]
 public class PreSaleController : ControllerBase
 {
     private readonly IPreSaleRepository _repository;
