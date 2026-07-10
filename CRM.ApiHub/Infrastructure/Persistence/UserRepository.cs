@@ -21,7 +21,7 @@ public class UserRepository : IUserRepository
         using var conn = _factory.CreateConnection();
         var sql = @"
             SELECT id_user, username, password_hash, date_created, is_logged_in, last_activity, fingerprint, state 
-            FROM users 
+            FROM user_service.users 
             WHERE username = @Username;";
 
         return await conn.QueryFirstOrDefaultAsync<User>(
@@ -34,7 +34,7 @@ public class UserRepository : IUserRepository
         using var conn = _factory.CreateConnection();
         var sql = @"
             SELECT id_user, username, password_hash, date_created, is_logged_in, last_activity, fingerprint, state 
-            FROM users 
+            FROM user_service.users 
             WHERE id_user = @Id;";
 
         return await conn.QueryFirstOrDefaultAsync<User>(
@@ -51,12 +51,12 @@ public class UserRepository : IUserRepository
                 COALESCE(NULLIF(CONCAT_WS(' ', col.name, col.paternal_surname, col.maternal_surname), ''), u.username) AS username,
                 r.name AS role_name,
                 c.name AS campaign_name
-            FROM users u
-            LEFT JOIN collaborators col ON u.id_user = col.id_user
-            LEFT JOIN user_role ur ON u.id_user = ur.id_user AND ur.is_active = true
-            LEFT JOIN role r ON ur.id_role = r.id_role AND r.is_active = true
-            LEFT JOIN user_campaign uc ON u.id_user = uc.id_user AND uc.is_active = true
-            LEFT JOIN campaign c ON uc.id_cmpg = c.id_cmpg AND c.is_active = true
+            FROM user_service.users u
+            LEFT JOIN ext_ecosystem.collaborators col ON u.id_user = col.id_user
+            LEFT JOIN access_control.user_role ur ON u.id_user = ur.id_user AND ur.is_active = true
+            LEFT JOIN access_control.role r ON ur.id_role = r.id_role AND r.is_active = true
+            LEFT JOIN user_service.user_campaign uc ON u.id_user = uc.id_user AND uc.is_active = true
+            LEFT JOIN campaign_service.campaign c ON uc.id_cmpg = c.id_cmpg AND c.is_active = true
             WHERE u.id_user = @UserId;";
 
         var result = await conn.QueryFirstOrDefaultAsync<UserDetail>(

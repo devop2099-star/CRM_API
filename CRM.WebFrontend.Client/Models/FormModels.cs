@@ -12,6 +12,7 @@ public class OrderStatusDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? Color { get; set; }
 }
 
 public class FormFieldDto
@@ -40,4 +41,23 @@ public class FormSchemaDto
     public long IdForm { get; set; }
     public string Name { get; set; } = string.Empty;
     public List<FormFieldDto> Fields { get; set; } = new();
+}
+
+/// <summary>
+/// Matches the backend entity FormTemplate exactly.
+/// The backend returns: IdForm, IdCmpg, Name, Description, Register, IsActive, 
+/// IdStage, FormOrder, IsPrimary, AllowsPartial, MinCompletionPct, UpdatedAt
+/// </summary>
+public class FormTemplateDto
+{
+    public long IdForm { get; set; }
+    public long IdCmpg { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public long IdStage { get; set; }
+    public short FormOrder { get; set; }
+    public bool IsPrimary { get; set; }
+    public bool AllowsPartial { get; set; }
+    public short MinCompletionPct { get; set; }
+    public bool IsActive { get; set; }
 }

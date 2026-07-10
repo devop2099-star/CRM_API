@@ -8,8 +8,6 @@ using CRM.ApiHub.Domain.Entities;
 using CRM.ApiHub.Domain.Repositories;
 using Dapper;
 
-using CRM.ApiHub.Application.DTOs;
-
 namespace CRM.ApiHub.Infrastructure.Persistence;
 
 public class SalesOrderRepository : ISalesOrderRepository
@@ -21,7 +19,7 @@ public class SalesOrderRepository : ISalesOrderRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<IEnumerable<SalesOrderListDto>> GetByFiltersAsync(
+    public async Task<IEnumerable<SalesOrder>> GetByFiltersAsync(
         long? userId,
         long? statusId,
         long? campaignId,
@@ -30,70 +28,42 @@ public class SalesOrderRepository : ISalesOrderRepository
         CancellationToken ct = default)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var sql = new StringBuilder(@"
-            SELECT 
-                so.id_order AS IdOrder,
-                so.id_lead AS IdLead,
-                so.id_cmpg AS IdCmpg,
-                so.id_user AS IdUser,
-                so.owner_user_id AS OwnerUserId,
-                so.custody_user_id AS CustodyUserId,
-                so.id_status AS IdStatus,
-                so.id_substatus AS IdSubstatus,
-                so.currency_code AS CurrencyCode,
-                so.commission_currency AS CommissionCurrency,
-                so.sales_date AS SalesDate,
-                so.total_products AS TotalProducts,
-                so.total_value AS TotalValue,
-                so.is_alternate AS IsAlternate,
-                so.register AS Register,
-                TRIM(CONCAT(l.first_name, ' ', l.last_name)) AS ClientName,
-                c.name AS CampaignName,
-                os.name AS StatusName,
-                os.color AS StatusColor,
-                osu.name AS SubstatusName
-            FROM sales_service.sales_order so
-            LEFT JOIN lead_service.lead l ON so.id_lead = l.id_lead
-            LEFT JOIN campaign_service.campaign c ON so.id_cmpg = c.id_cmpg
-            LEFT JOIN sales_service.order_status os ON so.id_status = os.id_status
-            LEFT JOIN sales_service.order_substatus osu ON so.id_substatus = osu.id_substatus
-            WHERE 1=1 ");
-        
+        var sql = new StringBuilder("SELECT * FROM sales_service.sales_order WHERE 1=1");
         var parameters = new DynamicParameters();
 
         if (userId.HasValue)
         {
-            sql.Append(" AND so.id_user = @UserId");
+            sql.Append(" AND id_user = @UserId");
             parameters.Add("UserId", userId.Value);
         }
 
         if (statusId.HasValue)
         {
-            sql.Append(" AND so.id_status = @StatusId");
+            sql.Append(" AND id_status = @StatusId");
             parameters.Add("StatusId", statusId.Value);
         }
 
         if (campaignId.HasValue)
         {
-            sql.Append(" AND so.id_cmpg = @CampaignId");
+            sql.Append(" AND id_cmpg = @CampaignId");
             parameters.Add("CampaignId", campaignId.Value);
         }
 
         if (dateFrom.HasValue)
         {
-            sql.Append(" AND so.sales_date >= @DateFrom");
+            sql.Append(" AND sales_date >= @DateFrom");
             parameters.Add("DateFrom", dateFrom.Value);
         }
 
         if (dateTo.HasValue)
         {
-            sql.Append(" AND so.sales_date <= @DateTo");
+            sql.Append(" AND sales_date <= @DateTo");
             parameters.Add("DateTo", dateTo.Value);
         }
 
-        sql.Append(" ORDER BY so.sales_date DESC;");
+        sql.Append(" ORDER BY sales_date DESC;");
 
-        return await connection.QueryAsync<SalesOrderListDto>(
+        return await connection.QueryAsync<SalesOrder>(
             new CommandDefinition(sql.ToString(), parameters, cancellationToken: ct)
         );
     }
@@ -101,7 +71,7 @@ public class SalesOrderRepository : ISalesOrderRepository
     public async Task<SalesOrder?> GetByIdAsync(long idOrder, CancellationToken ct = default)
     {
         using var connection = _connectionFactory.CreateConnection();
-        const string sql = "SELECT * FROM sales_order WHERE id_order = @IdOrder;";
+        const string sql = "SELECT * FROM sales_service.sales_order WHERE id_order = @IdOrder;";
 
         return await connection.QueryFirstOrDefaultAsync<SalesOrder>(
             new CommandDefinition(sql, new { IdOrder = idOrder }, cancellationToken: ct)
@@ -112,7 +82,7 @@ public class SalesOrderRepository : ISalesOrderRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
-            INSERT INTO sales_order (
+            INSERT INTO sales_service.sales_order (
                 id_lead, id_cmpg, id_user, owner_user_id, custody_user_id,
                 id_status, id_substatus, currency_code, commission_currency,
                 status, sales_date, total_products, total_value, is_alternate,
@@ -149,15 +119,13 @@ public class SalesOrderRepository : ISalesOrderRepository
         using var transaction = connection.BeginTransaction();
         try
         {
-            // 1. Establecer el ID de usuario actor en la sesión de PostgreSQL para que el trigger fn_log_order_status_change no falle
             await connection.ExecuteAsync(
                 "SELECT set_config('app.current_user_id', @ActorId, true);",
                 new { ActorId = actorId.ToString() },
                 transaction: transaction
             );
 
-            // 2. Obtener estado y subestado actuales con bloqueo FOR UPDATE
-            const string selectSql = "SELECT id_status, id_substatus FROM sales_order WHERE id_order = @IdOrder FOR UPDATE;";
+            const string selectSql = "SELECT id_status, id_substatus FROM sales_service.sales_order WHERE id_order = @IdOrder FOR UPDATE;";
             var current = await connection.QueryFirstOrDefaultAsync<dynamic>(
                 new CommandDefinition(selectSql, new { IdOrder = idOrder }, transaction: transaction, cancellationToken: ct)
             );
@@ -171,9 +139,8 @@ public class SalesOrderRepository : ISalesOrderRepository
             long? fromStatusId = current.id_status != null ? (long?)current.id_status : null;
             long? fromSubstatusId = current.id_substatus != null ? (long?)current.id_substatus : null;
 
-            // 3. Actualizar el estado y subestado en la orden (disparará el trigger fn_log_order_status_change)
             const string updateSql = @"
-                UPDATE sales_order 
+                UPDATE sales_service.sales_order 
                 SET id_status = @ToStatusId, id_substatus = @ToSubstatusId, last_update = NOW()
                 WHERE id_order = @IdOrder;";
 
@@ -181,13 +148,11 @@ public class SalesOrderRepository : ISalesOrderRepository
                 new CommandDefinition(updateSql, new { ToStatusId = toStatusId, ToSubstatusId = toSubstatusId, IdOrder = idOrder }, transaction: transaction, cancellationToken: ct)
             );
 
-            // 4. Si el estado o subestado cambiaron, el trigger ya habrá insertado una fila de historial.
-            // La buscamos y actualizamos con comentarios e is_bulk.
             if (fromStatusId != toStatusId || fromSubstatusId != toSubstatusId)
             {
                 const string getHistoryIdSql = @"
                     SELECT id_history 
-                    FROM sales_order_status_history 
+                    FROM sales_service.sales_order_status_history 
                     WHERE id_order = @IdOrder 
                     ORDER BY id_history DESC 
                     LIMIT 1;";
@@ -199,7 +164,7 @@ public class SalesOrderRepository : ISalesOrderRepository
                 if (historyId.HasValue)
                 {
                     const string updateHistorySql = @"
-                        UPDATE sales_order_status_history 
+                        UPDATE sales_service.sales_order_status_history 
                         SET comment = @Comment, is_bulk = @IsBulk
                         WHERE id_history = @HistoryId;";
 
@@ -333,5 +298,14 @@ public class SalesOrderRepository : ISalesOrderRepository
         return await connection.QueryAsync<SalesOrderHistoryEventRaw>(
             new CommandDefinition(sql, new { IdOrder = idOrder }, cancellationToken: ct)
         );
-    }
-}
+     }
+     
+     public async Task<SalesOrder?> GetByLeadIdAsync(long idLead, CancellationToken ct = default)
+     {
+         using var connection = _connectionFactory.CreateConnection();
+         const string sql = "SELECT * FROM sales_service.sales_order WHERE id_lead = @IdLead LIMIT 1;";
+         return await connection.QueryFirstOrDefaultAsync<SalesOrder>(
+             new CommandDefinition(sql, new { IdLead = idLead }, cancellationToken: ct)
+         );
+     }
+ }

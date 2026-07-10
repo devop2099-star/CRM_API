@@ -356,11 +356,11 @@
         {
             if (filterCoverage == "PENDIENTE")
             {
-                temp = temp.Where(p => string.IsNullOrWhiteSpace(p.CoverageStatus) || string.Equals(p.CoverageStatus, "PENDIENTE", StringComparison.OrdinalIgnoreCase));
+                temp = temp.Where(p => string.IsNullOrWhiteSpace(p.CoverageStatus) || p.CoverageStatus.Trim().Equals("PENDIENTE", StringComparison.OrdinalIgnoreCase));
             }
             else
             {
-                temp = temp.Where(p => string.Equals(p.CoverageStatus, filterCoverage, StringComparison.OrdinalIgnoreCase));
+                temp = temp.Where(p => !string.IsNullOrWhiteSpace(p.CoverageStatus) && p.CoverageStatus.Trim().Equals(filterCoverage, StringComparison.OrdinalIgnoreCase));
             }
         }
 
@@ -448,9 +448,8 @@
         try
         {
             var client = HttpClientFactory.CreateClient("BackendApi");
-            // The API expects a raw string body, we must send it as JSON string or plain text depending on backend binding.
-            // Sending as quoted string since backend expects [FromBody] string callLog
-            var response = await client.PostAsJsonAsync($"/api/presales/{selectedPreSaleId}/calls", callNotes);
+            var payload = new { CallLog = callNotes };
+            var response = await client.PostAsJsonAsync($"/api/presales/{selectedPreSaleId}/calls", payload);
             if (response.IsSuccessStatusCode)
             {
                 isSuccessCall = true;
@@ -497,7 +496,8 @@
         try
         {
             var client = HttpClientFactory.CreateClient("BackendApi");
-            var response = await client.PostAsJsonAsync($"/api/presales/{selectedPreSaleId}/assign?toUserId={assignUserId}", assignContext);
+            var payload = new { ToUserId = assignUserId, Context = assignContext };
+            var response = await client.PostAsJsonAsync($"/api/presales/{selectedPreSaleId}/assign", payload);
             if (response.IsSuccessStatusCode)
             {
                 isSuccessAssign = true;

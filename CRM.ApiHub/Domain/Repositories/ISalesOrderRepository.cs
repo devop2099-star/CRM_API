@@ -4,13 +4,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using CRM.ApiHub.Domain.Entities;
 
-using CRM.ApiHub.Application.DTOs;
-
 namespace CRM.ApiHub.Domain.Repositories;
 
 public interface ISalesOrderRepository
 {
-    Task<IEnumerable<SalesOrderListDto>> GetByFiltersAsync(
+    Task<IEnumerable<SalesOrder>> GetByFiltersAsync(
         long? userId,
         long? statusId,
         long? campaignId,
@@ -32,4 +30,5 @@ public interface ISalesOrderRepository
         CancellationToken ct = default);
 
     Task<IEnumerable<SalesOrderHistoryEventRaw>> GetOrderHistoryTimelineAsync(long idOrder, CancellationToken ct = default);
+    Task<SalesOrder?> GetByLeadIdAsync(long idLead, CancellationToken ct = default);
 }

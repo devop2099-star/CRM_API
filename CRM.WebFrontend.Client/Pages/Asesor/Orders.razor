@@ -5,7 +5,9 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject AuthenticationStateProvider AuthStateProvider
 @using System.Net.Http.Json
+@using MudBlazor
 @inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
 
 <PageTitle>Mis Ventas - NYX CRM</PageTitle>
 
@@ -155,6 +157,9 @@
     public class SalesOrderListDto
     {
         public long IdOrder { get; set; }
+        public long IdCmpg { get; set; }
+        public long? IdStatus { get; set; }
+        public long IdLead { get; set; }
         public string ClientName { get; set; } = "";
         public string CampaignName { get; set; } = "";
         public string StatusName { get; set; } = "";
@@ -164,7 +169,7 @@
         public int DaysElapsed { get; set; }
     }
 
-    public class LookupDto { public long Id { get; set; } public string Name { get; set; } = ""; }
+    public class LookupDto { public long Id { get; set; } public string Name { get; set; } = ""; public string? Color { get; set; } }
 
     private List<SalesOrderListDto> allOrders = new();
     private List<SalesOrderListDto> pagedOrders = new();
@@ -219,7 +224,7 @@
             var statusesResult = await client.GetFromJsonAsync<List<CRM.WebFrontend.Client.Models.OrderStatusDto>>("/api/campaigns/1/statuses");
             if (statusesResult != null)
             {
-                filterStatuses = statusesResult.Select(s => new LookupDto { Id = s.Id, Name = s.Name }).ToList();
+                filterStatuses = statusesResult.Select(s => new LookupDto { Id = s.Id, Name = s.Name, Color = s.Color }).ToList();
             }
         }
         catch (Exception ex)
@@ -235,7 +240,7 @@
         {
             var client = HttpClientFactory.CreateClient("BackendApi");
             
-            var query = $"/api/orders?userId={currentUserId}";
+            var query = $"/api/campaigns/orders?userId={currentUserId}";
             if (filterStatusId.HasValue) query += $"&statusId={filterStatusId}";
             if (filterCampaignId.HasValue) query += $"&campaignId={filterCampaignId}";
             if (filterDateFrom.HasValue) query += $"&dateFrom={filterDateFrom.Value:yyyy-MM-dd}";
@@ -244,6 +249,14 @@
             var result = await client.GetFromJsonAsync<List<SalesOrderListDto>>(query);
             if (result != null)
             {
+                foreach (var o in result)
+                {
+                    o.CampaignName = filterCampaigns.FirstOrDefault(c => c.Id == o.IdCmpg)?.Name ?? "Desconocida";
+                    var matchedStatus = filterStatuses.FirstOrDefault(s => s.Id == o.IdStatus);
+                    o.StatusName = matchedStatus?.Name ?? "Por Asignar";
+                    o.StatusColor = matchedStatus?.Color ?? "#6c757d";
+                    o.ClientName = !string.IsNullOrEmpty(o.ClientName) ? o.ClientName : $"Cliente Lead #{o.IdLead}";
+                }
                 allOrders = result;
                 UpdatePagedOrders();
             }
@@ -290,7 +303,7 @@
 
     private void GoToDetail(long idOrder)
     {
-        // Redirect to detail page
-        NavigationManager.NavigateTo($"/asesor/orders/{idOrder}");
+        // El detalle de la orden aún no está implementado en la UI
+        Snackbar.Add($"El detalle para la orden #{idOrder} estará disponible próximamente.", Severity.Info);
     }
 }
