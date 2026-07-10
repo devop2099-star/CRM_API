@@ -117,6 +117,9 @@ public class CampaignController : ControllerBase
                 COALESCE(NULLIF(TRIM(CONCAT_WS(' ', col.name, col.paternal_surname, col.maternal_surname)), ''), u.username) as Name
             FROM user_service.users u
             LEFT JOIN ext_ecosystem.collaborators col ON u.id_user = col.id_user
+            LEFT JOIN access_control.user_role ur ON u.id_user = ur.id_user AND ur.is_active = true
+            LEFT JOIN access_control.role r ON ur.id_role = r.id_role AND r.is_active = true
+            WHERE r.name = 'ASESOR'
             ORDER BY Name;";
         var advisors = await connection.QueryAsync(sql);
         return Ok(advisors);
