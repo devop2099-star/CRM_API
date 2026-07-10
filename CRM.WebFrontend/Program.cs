@@ -15,11 +15,14 @@ var razorBuilder = builder.Services.AddRazorComponents();
 razorBuilder.AddInteractiveServerComponents();
 razorBuilder.AddInteractiveWebAssemblyComponents();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddTransient<CRM.WebFrontend.ServerAuthHandler>();
+
 // Add HttpClient for calling the backend API
 builder.Services.AddHttpClient("BackendApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5068");
-});
+}).AddHttpMessageHandler<CRM.WebFrontend.ServerAuthHandler>();
 
 // Configure native Cookie Authentication for Blazor Server
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
