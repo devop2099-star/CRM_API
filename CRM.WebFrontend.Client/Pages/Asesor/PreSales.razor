@@ -2,6 +2,9 @@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "ASESOR")]
+@inject IHttpClientFactory HttpClientFactory
+@inject AuthenticationStateProvider AuthStateProvider
+@using System.Net.Http.Json
 
 <PageTitle>Gestión de Pre-ventas - NYX CRM</PageTitle>
 
@@ -243,15 +246,41 @@
 }
 
 @code {
-    // --- Modelos DTO Simulados ---
     public class PreSaleDto
     {
-        public string Id { get; set; } = Guid.NewGuid().ToString();
-        public string Phone { get; set; } = "";
-        public string Operator { get; set; } = "";
-        public string Offer { get; set; } = "";
-        public string Status { get; set; } = "Nuevo";
-        public DateTime? LastCall { get; set; }
+        public int IdPresale { get; set; }
+        public int IdCmpg { get; set; }
+        public string? Phone { get; set; }
+        public string? Operator { get; set; }
+        public string? Notes { get; set; }
+        public int IdStatus { get; set; }
+        public int OwnerUserId { get; set; }
+        public int CurrentUserId { get; set; }
+        public DateTime Register { get; set; }
+        public DateTime? LastActivityAt { get; set; }
+
+        public string Offer 
+        { 
+            get => Notes ?? ""; 
+            set => Notes = value; 
+        }
+
+        public string Status 
+        { 
+            get 
+            {
+                if (IdStatus == 1) return "Nuevo";
+                if (IdStatus == 2) return "En Seguimiento";
+                if (IdStatus == 3) return "Promesa de Venta";
+                return "Nuevo";
+            }
+        }
+        
+        public DateTime? LastCall 
+        { 
+            get => LastActivityAt; 
+            set => LastActivityAt = value; 
+        }
     }
 
     public class CallRecordDto
@@ -274,7 +303,6 @@
         public string Campaign { get; set; } = "";
     }
 
-    // --- Estado de la UI ---
     private List<PreSaleDto> allPreSales = new();
     private List<PreSaleDto> filteredPreSales = new();
     
@@ -286,13 +314,12 @@
     };
 
     private bool isSaving = false;
+    private int currentUserId = 0;
 
-    // Filtros
     private string filterPhone = "";
     private string filterOperator = "";
     private string filterStatus = "";
 
-    // Modales
     private bool showNewPreSaleModal = false;
     private bool showCallModal = false;
     private bool showDeriveModal = false;
@@ -302,23 +329,43 @@
     private CallRecordDto callRecord = new();
     private DeriveDto deriveData = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // Generar mock data
-        allPreSales = new List<PreSaleDto>
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
         {
-            new PreSaleDto { Phone = "987654321", Operator = "Claro", Offer = "Plan MAX Ilimitado S/ 69.90", Status = "Nuevo" },
-            new PreSaleDto { Phone = "912345678", Operator = "Movistar", Offer = "Renovación Equipo - 50% dscto", Status = "En Seguimiento", LastCall = DateTime.Now.AddDays(-1) },
-            new PreSaleDto { Phone = "999888777", Operator = "Entel", Offer = "Portabilidad Plan S/ 45.90", Status = "Promesa de Venta", LastCall = DateTime.Now.AddHours(-2) }
-        };
-        filteredPreSales = allPreSales.ToList();
+            var userIdStr = user.FindFirst("id_user")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdStr, out int uid))
+            {
+                currentUserId = uid;
+            }
+        }
+        await LoadPreSalesAsync();
     }
 
-    // --- Lógica de Filtros ---
+    private async Task LoadPreSalesAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("BackendApi");
+            var result = await client.GetFromJsonAsync<List<PreSaleDto>>($"/api/presales?userId={currentUserId}");
+            if (result != null)
+            {
+                allPreSales = result;
+                ApplyFilters();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching presales: {ex.Message}");
+        }
+    }
+
     private void ApplyFilters()
     {
         filteredPreSales = allPreSales.Where(p => 
-            (string.IsNullOrWhiteSpace(filterPhone) || p.Phone.Contains(filterPhone)) &&
+            (string.IsNullOrWhiteSpace(filterPhone) || p.Phone?.Contains(filterPhone) == true) &&
             (string.IsNullOrWhiteSpace(filterOperator) || p.Operator == filterOperator) &&
             (string.IsNullOrWhiteSpace(filterStatus) || p.Status == filterStatus)
         ).ToList();
@@ -332,10 +379,9 @@
         filteredPreSales = allPreSales.ToList();
     }
 
-    // --- Lógica de Nueva Pre-venta ---
     private void OpenNewPreSaleModal()
     {
-        newPreSale = new PreSaleDto();
+        newPreSale = new PreSaleDto { IdCmpg = 1, IdStatus = 1 }; // Default values
         showNewPreSaleModal = true;
     }
 
@@ -344,16 +390,30 @@
     private async Task GuardarPreVentaAsync()
     {
         isSaving = true;
-        await Task.Delay(800); // Simular llamada HTTP
-        
-        allPreSales.Insert(0, newPreSale);
-        ApplyFilters();
-        
-        isSaving = false;
-        showNewPreSaleModal = false;
+        try
+        {
+            newPreSale.OwnerUserId = currentUserId;
+            newPreSale.CurrentUserId = currentUserId;
+            
+            var client = HttpClientFactory.CreateClient("BackendApi");
+            var response = await client.PostAsJsonAsync("/api/presales", newPreSale);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadPreSalesAsync();
+                showNewPreSaleModal = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving presale: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 
-    // --- Lógica de Llamada ---
     private void OpenCallModal(PreSaleDto preSale)
     {
         selectedPreSale = preSale;
@@ -366,20 +426,32 @@
     private async Task GuardarLlamadaAsync()
     {
         isSaving = true;
-        await Task.Delay(800); // Simular llamada HTTP
-        
-        if (selectedPreSale != null)
+        try
         {
-            selectedPreSale.LastCall = DateTime.Now;
-            selectedPreSale.Status = "En Seguimiento";
+            if (selectedPreSale != null)
+            {
+                var client = HttpClientFactory.CreateClient("BackendApi");
+                // Convert complex log string or JSON to string payload, here we send simple note
+                string callLogStr = $"[{callRecord.Status}] - Duración: {callRecord.DurationMins} min. Notas: {callRecord.Notes}";
+                var response = await client.PostAsJsonAsync($"/api/presales/{selectedPreSale.IdPresale}/calls", callLogStr);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    await LoadPreSalesAsync();
+                    showCallModal = false;
+                }
+            }
         }
-        ApplyFilters();
-        
-        isSaving = false;
-        showCallModal = false;
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving call log: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 
-    // --- Lógica de Derivación ---
     private void OpenDeriveModal(PreSaleDto preSale)
     {
         selectedPreSale = preSale;
@@ -391,18 +463,30 @@
 
     private async Task DerivarAsync()
     {
-        if (string.IsNullOrWhiteSpace(deriveData.Context)) return;
+        if (string.IsNullOrWhiteSpace(deriveData.Context) || string.IsNullOrWhiteSpace(deriveData.TargetAdviserId)) return;
 
         isSaving = true;
-        await Task.Delay(800); // Simular HTTP POST
-
-        if (selectedPreSale != null)
+        try
         {
-            allPreSales.Remove(selectedPreSale);
-            ApplyFilters();
+            if (selectedPreSale != null)
+            {
+                var client = HttpClientFactory.CreateClient("BackendApi");
+                var response = await client.PostAsJsonAsync($"/api/presales/{selectedPreSale.IdPresale}/assign?toUserId={deriveData.TargetAdviserId}", deriveData.Context);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    await LoadPreSalesAsync();
+                    showDeriveModal = false;
+                }
+            }
         }
-        
-        isSaving = false;
-        showDeriveModal = false;
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deriving presale: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
     }
 }

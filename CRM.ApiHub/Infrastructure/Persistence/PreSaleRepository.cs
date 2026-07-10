@@ -17,7 +17,26 @@ public class PreSaleRepository : IPreSaleRepository
     public async Task<IEnumerable<LeadPreSale>> GetByUserAsync(int userId)
     {
         using var connection = _connectionFactory.CreateConnection();
-        const string sql = "SELECT * FROM lead_service.lead_pre_sale WHERE current_user_id = @UserId;";
+        const string sql = @"
+            SELECT 
+                id_presale AS IdPresale, 
+                id_cmpg AS IdCmpg, 
+                phone AS Phone, 
+                operator AS Operator, 
+                first_name AS FirstName, 
+                last_name AS LastName, 
+                address AS Address, 
+                province AS Province, 
+                coverage_status AS CoverageStatus, 
+                id_status AS IdStatus, 
+                owner_user_id AS OwnerUserId, 
+                current_user_id AS CurrentUserId, 
+                notes AS Notes, 
+                register AS Register,
+                last_activity_at AS LastActivityAt
+            FROM lead_service.lead_pre_sale 
+            WHERE current_user_id = @UserId 
+            ORDER BY register DESC;";
         
         return await connection.QueryAsync<LeadPreSale>(sql, new { UserId = userId });
     }

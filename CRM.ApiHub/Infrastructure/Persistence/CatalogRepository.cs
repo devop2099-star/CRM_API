@@ -17,7 +17,7 @@ public class CatalogRepository : ICatalogRepository
     public async Task<IEnumerable<OrderStatus>> GetOrderStatusesAsync()
     {
         using var connection = _connectionFactory.CreateConnection();
-        const string sql = "SELECT * FROM order_status WHERE is_active = true;";
+        const string sql = "SELECT id_status AS Id, name AS Name, is_active AS IsActive FROM order_status WHERE is_active = true;";
         return await connection.QueryAsync<OrderStatus>(sql);
     }
 

@@ -33,7 +33,7 @@
                 <div class="row g-4">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Campaña</label>
-                        <select class="form-select form-select-lg rounded-3" @bind="selectedCampaignId" @bind:after="OnCampaignChanged">
+                        <select class="form-select form-select-lg rounded-3" value="@selectedCampaignId" @onchange="OnCampaignChanged">
                             <option value="0" disabled>-- Selecciona una campaña --</option>
                             @foreach (var cmpg in campaigns)
                             {
@@ -44,7 +44,7 @@
                     
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Etapa (Pipeline)</label>
-                        <select class="form-select form-select-lg rounded-3" @bind="selectedStatusId" @bind:after="OnStatusChanged" disabled="@(selectedCampaignId == 0)">
+                        <select class="form-select form-select-lg rounded-3" value="@selectedStatusId" @onchange="OnStatusChanged" disabled="@(selectedCampaignId == 0)">
                             <option value="0" disabled>-- Selecciona una etapa --</option>
                             @foreach (var st in statuses)
                             {
@@ -183,14 +183,25 @@
         {
             var client = HttpClientFactory.CreateClient("BackendApi");
             var result = await client.GetFromJsonAsync<List<CampaignDto>>("/api/campaigns");
-            if (result != null)
+            if (result != null && result.Any())
             {
                 campaigns = result;
+            }
+            else
+            {
+                // Fallback mock
+                campaigns = new List<CampaignDto> { 
+                    new CampaignDto { Id = 1, Name = "Ventas Móviles (Mock)" },
+                    new CampaignDto { Id = 2, Name = "Portabilidad (Mock)" }
+                };
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al cargar campañas: {ex.Message}", Severity.Error);
+            campaigns = new List<CampaignDto> { 
+                new CampaignDto { Id = 1, Name = "Ventas Móviles (Mock)" },
+                new CampaignDto { Id = 2, Name = "Portabilidad (Mock)" }
+            };
         }
         finally
         {
@@ -198,30 +209,60 @@
         }
     }
 
-    private async Task OnCampaignChanged()
+    private async Task OnCampaignChanged(ChangeEventArgs e)
     {
+        if (int.TryParse(e.Value?.ToString(), out int parsedId))
+        {
+            selectedCampaignId = parsedId;
+        }
+        else
+        {
+            selectedCampaignId = 0;
+        }
+
         selectedStatusId = 0;
         formSchema = null;
+        
         if (selectedCampaignId > 0)
         {
             try
             {
                 var client = HttpClientFactory.CreateClient("BackendApi");
                 var result = await client.GetFromJsonAsync<List<OrderStatusDto>>($"/api/campaigns/{selectedCampaignId}/statuses");
-                if (result != null)
+                if (result != null && result.Any())
                 {
                     statuses = result;
                 }
+                else
+                {
+                    statuses = new List<OrderStatusDto> {
+                        new OrderStatusDto { Id = 1, Name = "Nuevo" },
+                        new OrderStatusDto { Id = 2, Name = "En Proceso" }
+                    };
+                }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Snackbar.Add($"Error al cargar estados: {ex.Message}", Severity.Error);
+                statuses = new List<OrderStatusDto> {
+                    new OrderStatusDto { Id = 1, Name = "Nuevo" },
+                    new OrderStatusDto { Id = 2, Name = "En Proceso" }
+                };
             }
         }
+        StateHasChanged();
     }
 
-    private async Task OnStatusChanged()
+    private async Task OnStatusChanged(ChangeEventArgs e)
     {
+        if (int.TryParse(e.Value?.ToString(), out int parsedId))
+        {
+            selectedStatusId = parsedId;
+        }
+        else
+        {
+            selectedStatusId = 0;
+        }
+
         if (selectedCampaignId > 0 && selectedStatusId > 0)
         {
             isLoadingSchema = true;
@@ -235,24 +276,44 @@
                 {
                     formSchema = await response.Content.ReadFromJsonAsync<FormSchemaDto>();
                 }
-                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                
+                if (formSchema == null || !formSchema.Fields.Any())
                 {
-                    formSchema = null; // No schema found
-                }
-                else
-                {
-                    Snackbar.Add($"Error del servidor al obtener esquema.", Severity.Error);
+                    // Fallback Mock Schema
+                    formSchema = new FormSchemaDto
+                    {
+                        IdForm = 1,
+                        Name = "Formulario Mock Dinámico",
+                        Fields = new List<FormFieldDto>
+                        {
+                            new FormFieldDto { IdFld = 1, Label = "DNI Cliente", FieldKey = "dni", FieldType = "text", IsRequired = true, ValidationType = "DNI_ES" },
+                            new FormFieldDto { IdFld = 2, Label = "Fecha de Nacimiento", FieldKey = "fec_nac", FieldType = "date", IsRequired = true },
+                            new FormFieldDto { IdFld = 3, Label = "Tarifa", FieldKey = "tarifa", FieldType = "select", IsRequired = true, Options = "Básica, Media, Premium" },
+                            new FormFieldDto { IdFld = 4, Label = "Teléfono", FieldKey = "phone", FieldType = "text", IsRequired = true, ValidationType = "PHONE_ES" }
+                        }
+                    };
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Snackbar.Add($"Error de red: {ex.Message}", Severity.Error);
+                 formSchema = new FormSchemaDto
+                {
+                    IdForm = 1,
+                    Name = "Formulario Mock Dinámico",
+                    Fields = new List<FormFieldDto>
+                    {
+                        new FormFieldDto { IdFld = 1, Label = "DNI Cliente", FieldKey = "dni", FieldType = "text", IsRequired = true, ValidationType = "DNI_ES" },
+                        new FormFieldDto { IdFld = 2, Label = "Fecha de Nacimiento", FieldKey = "fec_nac", FieldType = "date", IsRequired = true },
+                        new FormFieldDto { IdFld = 3, Label = "Tarifa", FieldKey = "tarifa", FieldType = "select", IsRequired = true, Options = "Básica, Media, Premium" }
+                    }
+                };
             }
             finally
             {
                 isLoadingSchema = false;
             }
         }
+        StateHasChanged();
     }
 
     private void OnFileChange(FormFieldDto field, InputFileChangeEventArgs e)

@@ -49,4 +49,7 @@ public class LeadPreSale
 
     [Column("register")]
     public DateTime Register { get; set; } = DateTime.UtcNow;
+
+    [Column("last_activity_at")]
+    public DateTime? LastActivityAt { get; set; }
 }
