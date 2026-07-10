@@ -8,6 +8,8 @@ using CRM.ApiHub.Domain.Entities;
 using CRM.ApiHub.Domain.Repositories;
 using Dapper;
 
+using CRM.ApiHub.Application.DTOs;
+
 namespace CRM.ApiHub.Infrastructure.Persistence;
 
 public class SalesOrderRepository : ISalesOrderRepository
@@ -19,7 +21,7 @@ public class SalesOrderRepository : ISalesOrderRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<IEnumerable<SalesOrder>> GetByFiltersAsync(
+    public async Task<IEnumerable<SalesOrderListDto>> GetByFiltersAsync(
         long? userId,
         long? statusId,
         long? campaignId,
@@ -28,42 +30,70 @@ public class SalesOrderRepository : ISalesOrderRepository
         CancellationToken ct = default)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var sql = new StringBuilder("SELECT * FROM sales_order WHERE 1=1");
+        var sql = new StringBuilder(@"
+            SELECT 
+                so.id_order AS IdOrder,
+                so.id_lead AS IdLead,
+                so.id_cmpg AS IdCmpg,
+                so.id_user AS IdUser,
+                so.owner_user_id AS OwnerUserId,
+                so.custody_user_id AS CustodyUserId,
+                so.id_status AS IdStatus,
+                so.id_substatus AS IdSubstatus,
+                so.currency_code AS CurrencyCode,
+                so.commission_currency AS CommissionCurrency,
+                so.sales_date AS SalesDate,
+                so.total_products AS TotalProducts,
+                so.total_value AS TotalValue,
+                so.is_alternate AS IsAlternate,
+                so.register AS Register,
+                TRIM(CONCAT(l.first_name, ' ', l.last_name)) AS ClientName,
+                c.name AS CampaignName,
+                os.name AS StatusName,
+                os.color AS StatusColor,
+                osu.name AS SubstatusName
+            FROM sales_service.sales_order so
+            LEFT JOIN lead_service.lead l ON so.id_lead = l.id_lead
+            LEFT JOIN campaign_service.campaign c ON so.id_cmpg = c.id_cmpg
+            LEFT JOIN sales_service.order_status os ON so.id_status = os.id_status
+            LEFT JOIN sales_service.order_substatus osu ON so.id_substatus = osu.id_substatus
+            WHERE 1=1 ");
+        
         var parameters = new DynamicParameters();
 
         if (userId.HasValue)
         {
-            sql.Append(" AND id_user = @UserId");
+            sql.Append(" AND so.id_user = @UserId");
             parameters.Add("UserId", userId.Value);
         }
 
         if (statusId.HasValue)
         {
-            sql.Append(" AND id_status = @StatusId");
+            sql.Append(" AND so.id_status = @StatusId");
             parameters.Add("StatusId", statusId.Value);
         }
 
         if (campaignId.HasValue)
         {
-            sql.Append(" AND id_cmpg = @CampaignId");
+            sql.Append(" AND so.id_cmpg = @CampaignId");
             parameters.Add("CampaignId", campaignId.Value);
         }
 
         if (dateFrom.HasValue)
         {
-            sql.Append(" AND sales_date >= @DateFrom");
+            sql.Append(" AND so.sales_date >= @DateFrom");
             parameters.Add("DateFrom", dateFrom.Value);
         }
 
         if (dateTo.HasValue)
         {
-            sql.Append(" AND sales_date <= @DateTo");
+            sql.Append(" AND so.sales_date <= @DateTo");
             parameters.Add("DateTo", dateTo.Value);
         }
 
-        sql.Append(" ORDER BY sales_date DESC;");
+        sql.Append(" ORDER BY so.sales_date DESC;");
 
-        return await connection.QueryAsync<SalesOrder>(
+        return await connection.QueryAsync<SalesOrderListDto>(
             new CommandDefinition(sql.ToString(), parameters, cancellationToken: ct)
         );
     }
