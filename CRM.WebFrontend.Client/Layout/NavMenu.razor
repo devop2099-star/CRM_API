@@ -6,6 +6,11 @@
             </NavLink>
         </li>
         <li class="nav-item">
+            <NavLink class="nav-link text-white mx-3 mb-2" href="/asesor/orders/new">
+                <span class="me-3">📝</span> Nueva Orden
+            </NavLink>
+        </li>
+        <li class="nav-item">
             <NavLink class="nav-link text-white mx-3 mb-2" href="/asesor/presales">
                 <span class="me-3">📞</span> Mis Pre-Ventas
             </NavLink>
@@ -37,8 +42,18 @@
     
     <AuthorizeView Roles="BACKOFFICE">
         <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/backoffice" Match="NavLinkMatch.All">
-                <span class="me-3">⚙️</span> Gestión Operativa
+            <NavLink class="nav-link text-white mx-3 mb-2" href="/backoffice/dashboard" Match="NavLinkMatch.All">
+                <span class="me-3">⚙️</span> Dashboard Backoffice
+            </NavLink>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link text-white mx-3 mb-2" href="/backoffice/equipo">
+                <span class="me-3">👥</span> Rendimiento de Equipo
+            </NavLink>
+        </li>
+        <li class="nav-item">
+            <NavLink class="nav-link text-white mx-3 mb-2" href="/backoffice/alertas">
+                <span class="me-3">⚠️</span> Alertas Activas
             </NavLink>
         </li>
     </AuthorizeView>

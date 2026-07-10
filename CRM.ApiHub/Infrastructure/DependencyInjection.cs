@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<ILeadRepository, LeadRepository>();
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
         services.AddScoped<IOrderDocumentRepository, OrderDocumentRepository>();
+        services.AddScoped<IFormSchemaRepository, FormSchemaRepository>();
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
@@ -54,6 +55,7 @@ public static class DependencyInjection
         services.AddScoped<CreateSalesOrderUseCase>();
         services.AddScoped<UpdateSalesOrderStatusUseCase>();
         services.AddScoped<GetSalesOrderHistoryUseCase>();
+        services.AddScoped<GetFormSchemaUseCase>();
 
         // Document Use Cases
         services.AddScoped<GetDocumentsByOrderUseCase>();
