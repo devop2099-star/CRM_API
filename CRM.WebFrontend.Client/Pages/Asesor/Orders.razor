@@ -30,7 +30,7 @@
                     <label class="form-label fw-bold text-muted small">Estado</label>
                     <select class="form-select rounded-3" @bind="filterStatusId">
                         <option value="">Todos</option>
-                        @foreach (var st in mockStatuses)
+                        @foreach (var st in filterStatuses)
                         {
                             <option value="@st.Id">@st.Name</option>
                         }
@@ -40,7 +40,7 @@
                     <label class="form-label fw-bold text-muted small">Campaña</label>
                     <select class="form-select rounded-3" @bind="filterCampaignId">
                         <option value="">Todas</option>
-                        @foreach (var c in mockCampaigns)
+                        @foreach (var c in filterCampaigns)
                         {
                             <option value="@c.Id">@c.Name</option>
                         }
@@ -169,18 +169,8 @@
     private List<SalesOrderListDto> allOrders = new();
     private List<SalesOrderListDto> pagedOrders = new();
     
-    private List<LookupDto> mockStatuses = new()
-    {
-        new LookupDto { Id = 1, Name = "Borrador" },
-        new LookupDto { Id = 4, Name = "En gestión" },
-        new LookupDto { Id = 9, Name = "Activado" },
-        new LookupDto { Id = 10, Name = "Enviado KO" }
-    };
-    private List<LookupDto> mockCampaigns = new()
-    {
-        new LookupDto { Id = 1, Name = "Portabilidad" },
-        new LookupDto { Id = 2, Name = "Retención" }
-    };
+    private List<LookupDto> filterStatuses = new();
+    private List<LookupDto> filterCampaigns = new();
 
     private bool isLoading = true;
     private int currentUserId = 0;
@@ -208,7 +198,34 @@
                 currentUserId = uid;
             }
         }
+        await LoadFilterOptionsAsync();
         await LoadOrdersAsync();
+    }
+
+    private async Task LoadFilterOptionsAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("BackendApi");
+            
+            // Cargar campañas
+            var campaignsResult = await client.GetFromJsonAsync<List<CRM.WebFrontend.Client.Models.CampaignDto>>("/api/campaigns");
+            if (campaignsResult != null)
+            {
+                filterCampaigns = campaignsResult.Select(c => new LookupDto { Id = c.Id, Name = c.Name }).ToList();
+            }
+
+            // Cargar estados (usando id de campaña = 1 como pivote base para extraer el catálogo general según el backend)
+            var statusesResult = await client.GetFromJsonAsync<List<CRM.WebFrontend.Client.Models.OrderStatusDto>>("/api/campaigns/1/statuses");
+            if (statusesResult != null)
+            {
+                filterStatuses = statusesResult.Select(s => new LookupDto { Id = s.Id, Name = s.Name }).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading filter options: {ex.Message}");
+        }
     }
 
     private async Task LoadOrdersAsync()

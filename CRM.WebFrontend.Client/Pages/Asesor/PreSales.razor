@@ -1,0 +1,194 @@
+@page "/asesor/preventas"
+@using CRM.WebFrontend.Client.Models
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IHttpClientFactory HttpClientFactory
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary mb-1">Mis Pre-Ventas</h2>
+            <p class="text-muted mb-0">Gestiona y haz seguimiento a tus pre-ventas y leads.</p>
+        </div>
+        <button class="btn btn-primary rounded-pill px-4 shadow-sm" @onclick="() => { }">
+            <i class="bi bi-plus-lg me-2"></i> + Nueva Pre-Venta
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2 text-muted">Cargando pre-ventas...</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0 px-4 py-3 text-muted fw-bold">N° Pre-Venta</th>
+                                <th class="border-0 px-4 py-3 text-muted fw-bold">Cliente</th>
+                                <th class="border-0 px-4 py-3 text-muted fw-bold">Teléfono</th>
+                                <th class="border-0 px-4 py-3 text-muted fw-bold">Operador</th>
+                                <th class="border-0 px-4 py-3 text-muted fw-bold">Cobertura</th>
+                                <th class="border-0 px-4 py-3 text-muted fw-bold">Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (pagedPreSales != null && pagedPreSales.Any())
+                            {
+                                @foreach (var preSale in pagedPreSales)
+                                {
+                                    <tr class="cursor-pointer">
+                                        <td class="px-4 py-3">
+                                            <span class="text-primary fw-bold">#@preSale.IdPresale</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-dark">
+                                            @(string.IsNullOrWhiteSpace(preSale.FirstName) && string.IsNullOrWhiteSpace(preSale.LastName) ? "Sin nombre" : $"{preSale.FirstName} {preSale.LastName}".Trim())
+                                        </td>
+                                        <td class="px-4 py-3 text-secondary">
+                                            @preSale.Phone
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <span class="badge bg-light text-dark border">@preSale.Operator</span>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            @if (preSale.CoverageStatus == "SI")
+                                            {
+                                                <span class="badge bg-success bg-opacity-10 text-success">Con Cobertura</span>
+                                            }
+                                            else if (preSale.CoverageStatus == "NO")
+                                            {
+                                                <span class="badge bg-danger bg-opacity-10 text-danger">Sin Cobertura</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary">Pendiente</span>
+                                            }
+                                        </td>
+                                        <td class="px-4 py-3 text-secondary">
+                                            @preSale.Register.ToString("dd/MM/yyyy")
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        No se encontraron pre-ventas.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (totalPages > 1)
+                {
+                    <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                        <span class="text-muted small">Mostrando @(((currentPage - 1) * pageSize) + 1) a @Math.Min(currentPage * pageSize, allPreSales.Count) de @allPreSales.Count pre-ventas</span>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary btn-sm" disabled="@(currentPage == 1)" @onclick="PreviousPage">
+                                Anterior
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" disabled="@(currentPage == totalPages)" @onclick="NextPage">
+                                Siguiente
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .cursor-pointer:hover { background-color: #f8f9fa !important; }
+</style>
+
+@code {
+    private List<PreSaleDto> allPreSales = new();
+    private List<PreSaleDto> pagedPreSales = new();
+    
+    private bool isLoading = true;
+    private int currentUserId = 0;
+    
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => (int)Math.Ceiling((double)allPreSales.Count / pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var idUserClaim = user.FindFirst(c => c.Type == "id_user" || c.Type == System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (idUserClaim != null && int.TryParse(idUserClaim.Value, out int uid))
+            {
+                currentUserId = uid;
+            }
+        }
+        await LoadPreSalesAsync();
+    }
+
+    private async Task LoadPreSalesAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("BackendApi");
+            var result = await client.GetFromJsonAsync<List<PreSaleDto>>($"/api/presales?userId={currentUserId}");
+            
+            if (result != null)
+            {
+                // Ordenar por las más recientes primero
+                allPreSales = result.OrderByDescending(p => p.Register).ToList();
+                UpdatePagedPreSales();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching presales: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void UpdatePagedPreSales()
+    {
+        pagedPreSales = allPreSales
+            .Skip((currentPage - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            UpdatePagedPreSales();
+        }
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+            UpdatePagedPreSales();
+        }
+    }
+}
