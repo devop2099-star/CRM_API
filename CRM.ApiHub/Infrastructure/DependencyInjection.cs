@@ -5,6 +5,7 @@ using CRM.ApiHub.Application.UseCases.Leads;
 using CRM.ApiHub.Application.UseCases.SalesOrders;
 using CRM.ApiHub.Application.UseCases.Documents;
 using CRM.ApiHub.Application.UseCases.Supervisor;
+using CRM.ApiHub.Application.UseCases.Backoffice;
 using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Infrastructure.Authentication;
 using CRM.ApiHub.Infrastructure.Persistence;
@@ -37,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
         services.AddScoped<IOrderDocumentRepository, OrderDocumentRepository>();
         services.AddScoped<ISupervisorRepository, SupervisorRepository>();
+        services.AddScoped<IBackofficeRepository, BackofficeRepository>();
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
@@ -66,6 +68,12 @@ public static class DependencyInjection
         services.AddScoped<GetTeamOrdersUseCase>();
         services.AddScoped<GetTeamStatsUseCase>();
         services.AddScoped<BulkTransferToBackofficeUseCase>();
+
+        // Backoffice Use Cases
+        services.AddScoped<GetAssignedOrdersUseCase>();
+        services.AddScoped<GetPendingVerificationUseCase>();
+        services.AddScoped<UpdateBackofficeOrderStatusUseCase>();
+        services.AddScoped<VerifyBackofficeDocumentUseCase>();
 
         // JWT Authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
