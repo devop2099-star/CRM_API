@@ -79,6 +79,7 @@ public class UpdateLeadStatusUseCase
                         CustomDescription = $"Se generó automáticamente esta incidencia debido al cambio de estado del lead a {dto.IdStatus}. Comentario: {dto.Comment}",
                         IncidentStatus = "OPEN",
                         DetectedBy = actorId,
+                        AssignedToRole = "SUPPORT",
                         Register = System.DateTime.UtcNow
                     };
                     await _incidentRepository.CreateAsync(testIncident);
