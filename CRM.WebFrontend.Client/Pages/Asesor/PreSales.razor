@@ -245,9 +245,15 @@
                 <div class="modal-body">
                     <p class="text-muted small">Traslada la pre-venta #@selectedPreSaleId a otro agente.</p>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">ID del Nuevo Asesor</label>
-                        <input type="number" class="form-control" @bind="assignUserId" placeholder="Ej. 102" />
-                        <div class="form-text">Ingresa el identificador numérico del usuario destino.</div>
+                        <label class="form-label fw-bold small">Nuevo Asesor</label>
+                        <select class="form-select rounded-3" @bind="assignUserId">
+                            <option value="0" disabled>-- Selecciona un asesor --</option>
+                            @foreach (var adv in advisors)
+                            {
+                                <option value="@adv.Id">@adv.Name</option>
+                            }
+                        </select>
+                        <div class="form-text">Selecciona el asesor de destino para transferir la pre-venta.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">Contexto de la Derivación</label>
@@ -305,6 +311,14 @@
     private int assignUserId = 0;
     private string assignContext = "";
 
+    private List<AdvisorLookupDto> advisors = new();
+
+    public class AdvisorLookupDto 
+    { 
+        public int Id { get; set; } 
+        public string Name { get; set; } = string.Empty; 
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -318,7 +332,25 @@
                 currentUserId = uid;
             }
         }
+        await LoadAdvisorsAsync();
         await LoadPreSalesAsync();
+    }
+
+    private async Task LoadAdvisorsAsync()
+    {
+        try
+        {
+            var client = HttpClientFactory.CreateClient("BackendApi");
+            var result = await client.GetFromJsonAsync<List<AdvisorLookupDto>>("/api/campaigns/advisors");
+            if (result != null)
+            {
+                advisors = result;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading advisors: {ex.Message}");
+        }
     }
 
     private async Task LoadPreSalesAsync()

@@ -106,4 +106,19 @@ public class CampaignController : ControllerBase
         var orders = await connection.QueryAsync(sql.ToString(), parameters);
         return Ok(orders);
     }
+
+    [HttpGet("advisors")]
+    public async Task<IActionResult> GetAdvisors()
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        const string sql = @"
+            SELECT 
+                u.id_user as Id,
+                COALESCE(NULLIF(TRIM(CONCAT_WS(' ', col.name, col.paternal_surname, col.maternal_surname)), ''), u.username) as Name
+            FROM user_service.users u
+            LEFT JOIN ext_ecosystem.collaborators col ON u.id_user = col.id_user
+            ORDER BY Name;";
+        var advisors = await connection.QueryAsync(sql);
+        return Ok(advisors);
+    }
 }
