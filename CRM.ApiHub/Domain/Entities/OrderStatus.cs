@@ -17,6 +17,9 @@ public class OrderStatus
     [Column("description")]
     public string? Description { get; set; }
 
+    [Column("color")]
+    public string? Color { get; set; }
+
     [Column("is_active")]
     public bool IsActive { get; set; }
 }

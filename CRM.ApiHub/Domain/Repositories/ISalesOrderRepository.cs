@@ -4,11 +4,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using CRM.ApiHub.Domain.Entities;
 
+using CRM.ApiHub.Application.DTOs;
+
 namespace CRM.ApiHub.Domain.Repositories;
 
 public interface ISalesOrderRepository
 {
-    Task<IEnumerable<SalesOrder>> GetByFiltersAsync(
+    Task<IEnumerable<SalesOrderListDto>> GetByFiltersAsync(
         long? userId,
         long? statusId,
         long? campaignId,

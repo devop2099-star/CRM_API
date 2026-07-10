@@ -1,0 +1,279 @@
+@page "/asesor/orders"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "ASESOR")]
+@inject IHttpClientFactory HttpClientFactory
+@inject AuthenticationStateProvider AuthStateProvider
+@using System.Net.Http.Json
+@inject NavigationManager NavigationManager
+
+<PageTitle>Mis Ventas - NYX CRM</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-primary mb-1">Mis Órdenes de Venta</h2>
+            <p class="text-muted mb-0">Gestiona y haz seguimiento a tus ventas realizadas.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <a href="/asesor/orders/new" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                <i class="bi bi-plus-circle me-2"></i> + Nueva Orden
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-muted small">Estado</label>
+                    <select class="form-select rounded-3" @bind="filterStatusId">
+                        <option value="">Todos</option>
+                        @foreach (var st in mockStatuses)
+                        {
+                            <option value="@st.Id">@st.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-muted small">Campaña</label>
+                    <select class="form-select rounded-3" @bind="filterCampaignId">
+                        <option value="">Todas</option>
+                        @foreach (var c in mockCampaigns)
+                        {
+                            <option value="@c.Id">@c.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-muted small">Desde</label>
+                    <input type="date" class="form-control rounded-3" @bind="filterDateFrom" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-muted small">Hasta</label>
+                    <input type="date" class="form-control rounded-3" @bind="filterDateTo" />
+                </div>
+            </div>
+            <div class="mt-3 text-end">
+                <button class="btn btn-outline-secondary rounded-pill px-4 me-2" @onclick="ClearFilters">Limpiar</button>
+                <button class="btn btn-dark rounded-pill px-4" @onclick="ApplyFilters">Buscar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted">
+                        <tr>
+                            <th class="ps-4 py-3">N° Orden</th>
+                            <th>Cliente</th>
+                            <th>Campaña</th>
+                            <th>Estado</th>
+                            <th>Substatus</th>
+                            <th>Fecha</th>
+                            <th>Días</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (isLoading)
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else if (!pagedOrders.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    No se encontraron órdenes con los filtros seleccionados.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var order in pagedOrders)
+                            {
+                                <tr style="cursor: pointer;" @onclick="() => GoToDetail(order.IdOrder)">
+                                    <td class="ps-4 fw-bold text-primary">#@order.IdOrder</td>
+                                    <td class="fw-medium">@order.ClientName</td>
+                                    <td><span class="badge bg-light text-dark border">@order.CampaignName</span></td>
+                                    <td>
+                                        <span class="badge rounded-pill px-3" style="background-color: @(order.StatusColor ?? "#6c757d"); color: #fff;">
+                                            @order.StatusName
+                                        </span>
+                                    </td>
+                                    <td class="text-muted small">@(string.IsNullOrEmpty(order.SubstatusName) ? "-" : order.SubstatusName)</td>
+                                    <td>@order.SalesDate.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        <span class="fw-bold @(order.DaysElapsed > 5 ? "text-danger" : "text-success")">
+                                            @order.DaysElapsed días
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            @if (totalPages > 1)
+            {
+                <div class="d-flex justify-content-center p-3 border-top">
+                    <nav aria-label="Navegación de páginas">
+                        <ul class="pagination mb-0">
+                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => ChangePage(currentPage - 1)">Anterior</button>
+                            </li>
+                            @for (int i = 1; i <= totalPages; i++)
+                            {
+                                var pageNum = i;
+                                <li class="page-item @(currentPage == pageNum ? "active" : "")">
+                                    <button class="page-link" @onclick="() => ChangePage(pageNum)">@pageNum</button>
+                                </li>
+                            }
+                            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => ChangePage(currentPage + 1)">Siguiente</button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    public class SalesOrderListDto
+    {
+        public long IdOrder { get; set; }
+        public string ClientName { get; set; } = "";
+        public string CampaignName { get; set; } = "";
+        public string StatusName { get; set; } = "";
+        public string? StatusColor { get; set; }
+        public string? SubstatusName { get; set; }
+        public DateTime SalesDate { get; set; }
+        public int DaysElapsed { get; set; }
+    }
+
+    public class LookupDto { public long Id { get; set; } public string Name { get; set; } = ""; }
+
+    private List<SalesOrderListDto> allOrders = new();
+    private List<SalesOrderListDto> pagedOrders = new();
+    
+    private List<LookupDto> mockStatuses = new()
+    {
+        new LookupDto { Id = 1, Name = "Borrador" },
+        new LookupDto { Id = 4, Name = "En gestión" },
+        new LookupDto { Id = 9, Name = "Activado" },
+        new LookupDto { Id = 10, Name = "Enviado KO" }
+    };
+    private List<LookupDto> mockCampaigns = new()
+    {
+        new LookupDto { Id = 1, Name = "Portabilidad" },
+        new LookupDto { Id = 2, Name = "Retención" }
+    };
+
+    private bool isLoading = true;
+    private int currentUserId = 0;
+
+    // Filtros
+    private long? filterStatusId;
+    private long? filterCampaignId;
+    private DateTime? filterDateFrom;
+    private DateTime? filterDateTo;
+
+    // Paginación
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => (int)Math.Ceiling((double)allOrders.Count / pageSize);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userIdStr = user.FindFirst("id_user")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdStr, out int uid))
+            {
+                currentUserId = uid;
+            }
+        }
+        await LoadOrdersAsync();
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var client = HttpClientFactory.CreateClient("BackendApi");
+            
+            var query = $"/api/orders?userId={currentUserId}";
+            if (filterStatusId.HasValue) query += $"&statusId={filterStatusId}";
+            if (filterCampaignId.HasValue) query += $"&campaignId={filterCampaignId}";
+            if (filterDateFrom.HasValue) query += $"&dateFrom={filterDateFrom.Value:yyyy-MM-dd}";
+            if (filterDateTo.HasValue) query += $"&dateTo={filterDateTo.Value:yyyy-MM-dd}";
+
+            var result = await client.GetFromJsonAsync<List<SalesOrderListDto>>(query);
+            if (result != null)
+            {
+                allOrders = result;
+                UpdatePagedOrders();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching orders: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ApplyFilters()
+    {
+        currentPage = 1;
+        await LoadOrdersAsync();
+    }
+
+    private async Task ClearFilters()
+    {
+        filterStatusId = null;
+        filterCampaignId = null;
+        filterDateFrom = null;
+        filterDateTo = null;
+        currentPage = 1;
+        await LoadOrdersAsync();
+    }
+
+    private void UpdatePagedOrders()
+    {
+        pagedOrders = allOrders.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+    }
+
+    private void ChangePage(int newPage)
+    {
+        if (newPage >= 1 && newPage <= totalPages)
+        {
+            currentPage = newPage;
+            UpdatePagedOrders();
+        }
+    }
+
+    private void GoToDetail(long idOrder)
+    {
+        // Redirect to detail page
+        NavigationManager.NavigateTo($"/asesor/orders/{idOrder}");
+    }
+}
