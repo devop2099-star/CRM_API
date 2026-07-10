@@ -298,5 +298,14 @@ public class SalesOrderRepository : ISalesOrderRepository
         return await connection.QueryAsync<SalesOrderHistoryEventRaw>(
             new CommandDefinition(sql, new { IdOrder = idOrder }, cancellationToken: ct)
         );
-    }
-}
+     }
+     
+     public async Task<SalesOrder?> GetByLeadIdAsync(long idLead, CancellationToken ct = default)
+     {
+         using var connection = _connectionFactory.CreateConnection();
+         const string sql = "SELECT * FROM sales_service.sales_order WHERE id_lead = @IdLead LIMIT 1;";
+         return await connection.QueryFirstOrDefaultAsync<SalesOrder>(
+             new CommandDefinition(sql, new { IdLead = idLead }, cancellationToken: ct)
+         );
+     }
+ }

@@ -45,7 +45,7 @@ public class PreSaleRepository : IPreSaleRepository
 
         // 1. Calculate the next call_number
         const string getNextCallNumSql = "SELECT COALESCE(MAX(call_number), 0) + 1 FROM lead_service.lead_call_log WHERE id_presale = @PreSaleId;";
-        var nextCallNum = await connection.ExecuteScalarAsync<short>(getNextCallNumSql, new { PreSaleId = idPresale });
+        var nextCallNum = (short)await connection.ExecuteScalarAsync<int>(getNextCallNumSql, new { PreSaleId = idPresale });
 
         // 2. Insert call log
         const string sql = @"
