@@ -1,4 +1,4 @@
-using CRM.WebFrontend.Components;
+using CRM.WebFrontend.Services;
 using CRM.WebFrontend.Server.Components;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -60,9 +60,9 @@ builder.Services.AddReverseProxy()
         });
     });
 
+builder.Services.AddScoped<IBackofficeService, MockBackofficeService>();
 // Agregar servicios de MudBlazor
 builder.Services.AddMudServices();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

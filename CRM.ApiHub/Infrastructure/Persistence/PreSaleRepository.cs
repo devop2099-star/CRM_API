@@ -39,18 +39,30 @@ public class PreSaleRepository : IPreSaleRepository
         return await connection.ExecuteScalarAsync<int>(sql, preSale);
     }
 
-    public async Task<bool> AddCallLogAsync(int idPresale, string callLog)
+    public async Task<bool> AddCallLogAsync(int idPresale, string callLog, long userId = 1)
     {
         using var connection = _connectionFactory.CreateConnection();
+
+        // 1. Calculate the next call_number
+        const string getNextCallNumSql = "SELECT COALESCE(MAX(call_number), 0) + 1 FROM lead_service.lead_call_log WHERE id_presale = @PreSaleId;";
+        var nextCallNum = (short)await connection.ExecuteScalarAsync<int>(getNextCallNumSql, new { PreSaleId = idPresale });
+
+        // 2. Insert call log
         const string sql = @"
-            INSERT INTO lead_service.lead_call_log (id_presale, notes, register)
-            VALUES (@PreSaleId, @LogDetails, @CreatedAt);";
+            INSERT INTO lead_service.lead_call_log 
+            (id_presale, call_number, id_user, call_type, data_obtained, notes, register)
+            VALUES 
+            (@PreSaleId, @CallNumber, @UserId, @CallType, @DataObtained::jsonb, @Notes, @Register);";
 
         var rowsAffected = await connection.ExecuteAsync(sql, new 
         { 
             PreSaleId = idPresale, 
-            LogDetails = callLog,
-            CreatedAt = DateTime.UtcNow
+            CallNumber = nextCallNum,
+            UserId = userId,
+            CallType = "OUTBOUND",
+            DataObtained = "{}",
+            Notes = callLog,
+            Register = DateTime.UtcNow
         });
 
         return rowsAffected > 0;

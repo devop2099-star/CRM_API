@@ -35,10 +35,17 @@ public static class DependencyInjection
         services.AddScoped<ILeadRepository, LeadRepository>();
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
         services.AddScoped<IOrderDocumentRepository, OrderDocumentRepository>();
+        services.AddScoped<IFormRepository, FormRepository>();
+        services.AddScoped<IOrderDataRepository, OrderDataRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IIncidentRepository, IncidentRepository>();
+        services.AddScoped<IAlternateProfileRepository, AlternateProfileRepository>();
+        services.AddScoped<IApprovalRepository, ApprovalRepository>();
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
         
+        services.AddScoped<INotificationService, Application.Services.NotificationService>();
         // Use Cases
         services.AddScoped<LoginUseCase>();
         services.AddScoped<MeUseCase>();
