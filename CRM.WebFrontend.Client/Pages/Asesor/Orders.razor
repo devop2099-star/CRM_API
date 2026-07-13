@@ -240,7 +240,7 @@
         {
             var client = HttpClientFactory.CreateClient("BackendApi");
             
-            var query = $"/api/campaigns/orders?userId={currentUserId}";
+            var query = $"/api/orders?userId={currentUserId}";
             if (filterStatusId.HasValue) query += $"&statusId={filterStatusId}";
             if (filterCampaignId.HasValue) query += $"&campaignId={filterCampaignId}";
             if (filterDateFrom.HasValue) query += $"&dateFrom={filterDateFrom.Value:yyyy-MM-dd}";
