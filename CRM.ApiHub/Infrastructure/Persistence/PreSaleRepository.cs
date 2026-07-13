@@ -90,19 +90,27 @@ public class PreSaleRepository : IPreSaleRepository
     public async Task<bool> ConvertAsync(int idPresale, dynamic paramsData)
     {
         using var connection = _connectionFactory.CreateConnection();
-        const string sql = @"
-            UPDATE lead_service.lead_pre_sale 
-            SET id_status = @StatusId, converted_at = @UpdatedAt, converted_by = @ConvertedBy
-            WHERE id_presale = @IdPresale;";
+        
+        // 1. Get campaign ID from the pre-sale first
+        const string getCmpgSql = "SELECT id_cmpg FROM lead_service.lead_pre_sale WHERE id_presale = @IdPresale;";
+        var idCmpg = await connection.ExecuteScalarAsync<long?>(getCmpgSql, new { IdPresale = idPresale });
+        if (!idCmpg.HasValue) return false;
 
-        var rowsAffected = await connection.ExecuteAsync(sql, new 
-        { 
-            IdPresale = idPresale,
-            StatusId = 2, 
-            UpdatedAt = DateTime.UtcNow,
-            ConvertedBy = paramsData?.UserId ?? 0 
-        });
-
-        return rowsAffected > 0;
+        // 2. Call the db function
+        const string sql = "SELECT lead_service.convert_presale_to_order(@IdPresale, @IdCmpg, @UserId);";
+        try
+        {
+            var resultId = await connection.ExecuteScalarAsync<long>(sql, new 
+            { 
+                IdPresale = idPresale,
+                IdCmpg = idCmpg.Value,
+                UserId = (long)(paramsData?.UserId ?? 0)
+            });
+            return resultId > 0;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

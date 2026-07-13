@@ -45,6 +45,8 @@ public static class DependencyInjection
         services.AddScoped<IFormRepository, FormRepository>();
         services.AddScoped<IApprovalRepository, ApprovalRepository>();
         services.AddScoped<IAlternateProfileRepository, AlternateProfileRepository>();
+
+        // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
         

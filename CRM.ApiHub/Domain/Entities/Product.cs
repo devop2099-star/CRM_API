@@ -8,7 +8,7 @@ public class Product
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    [Column("id")]
+    [Column("id_prod")]
     public int Id { get; set; }
 
     [Column("sku")]
