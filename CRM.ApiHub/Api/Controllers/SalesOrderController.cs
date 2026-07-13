@@ -54,6 +54,11 @@ public class SalesOrderController : ControllerBase
                 }
             }
 
+            if (!userId.HasValue)
+            {
+                return Unauthorized(new { message = "El ID de usuario es requerido para realizar esta consulta." });
+            }
+
             var orders = await _getSalesOrdersUseCase.ExecuteAsync(userId, statusId, campaignId, dateFrom, dateTo, ct);
             return Ok(orders);
         }

@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 
 namespace CRM.ApiHub.Infrastructure;
 
@@ -48,7 +49,17 @@ public static class DependencyInjection
 
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
-        services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
+        services.AddSingleton<IConnectionMultiplexer>(sp => {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var connStr = configuration["RedisSettings:ConnectionString"];
+            if (string.IsNullOrEmpty(connStr)) return null!;
+            try {
+                return ConnectionMultiplexer.Connect(connStr);
+            } catch {
+                return null!; // Fallback to InMemory
+            }
+        });
+        services.AddSingleton<IRefreshTokenStore, RedisRefreshTokenStore>();
         
         services.AddScoped<INotificationService, Application.Services.NotificationService>();
         // Use Cases
