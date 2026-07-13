@@ -66,12 +66,20 @@ public class BackofficeRepository : IBackofficeRepository
         );
     }
 
-    public async Task<IEnumerable<OrderDocument>> GetPendingVerificationAsync(CancellationToken ct = default)
+    public async Task<IEnumerable<OrderDocument>> GetPendingVerificationAsync(long backofficeId, CancellationToken ct = default)
     {
         using var connection = _connectionFactory.CreateConnection();
-        const string sql = "SELECT * FROM sales_service.order_document WHERE verification_status = 'PENDING' AND is_active = true ORDER BY uploaded_at ASC;";
+        const string sql = @"
+            SELECT d.* 
+            FROM sales_service.order_document d
+            INNER JOIN sales_service.sales_order o ON d.id_order = o.id_order
+            WHERE o.custody_user_id = @BackofficeId 
+              AND d.verification_status = 'PENDING' 
+              AND d.is_active = true
+            ORDER BY d.uploaded_at ASC;";
+
         return await connection.QueryAsync<OrderDocument>(
-            new CommandDefinition(sql, cancellationToken: ct)
+            new CommandDefinition(sql, new { BackofficeId = backofficeId }, cancellationToken: ct)
         );
     }
 
