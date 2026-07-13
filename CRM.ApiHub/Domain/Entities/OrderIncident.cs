@@ -41,4 +41,7 @@ public class OrderIncident
     public DateTime? DueAt { get; set; }
     [Column("register")]
     public DateTime Register { get; set; }
+
+    [NotMapped]
+    public short? Priority { get; set; }
 }

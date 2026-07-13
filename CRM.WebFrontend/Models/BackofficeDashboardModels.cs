@@ -33,7 +33,8 @@ public record BackofficeIncidentDto(
     string? IncidentStatus,
     string? AssignedToRole,
     DateTime? DueAt,
-    DateTime Register
+    DateTime Register,
+    short? Priority = null
 );
 
 public record KbArticleSuggestionDto(

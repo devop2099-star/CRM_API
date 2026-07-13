@@ -127,22 +127,26 @@ public class IncidentRepository : IIncidentRepository
     public async Task<IEnumerable<OrderIncident>> GetFilteredAsync(string? assignedToRole, string? status, CancellationToken ct = default)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var sql = new System.Text.StringBuilder("SELECT * FROM sales_service.order_incident WHERE 1=1");
+        var sql = new System.Text.StringBuilder(@"
+            SELECT o.*, c.priority AS Priority 
+            FROM sales_service.order_incident o
+            LEFT JOIN sales_service.incident_catalog c ON o.id_incident = c.id_incident
+            WHERE 1=1");
         var parameters = new DynamicParameters();
         
         if (!string.IsNullOrEmpty(assignedToRole))
         {
-            sql.Append(" AND assigned_to_role = @AssignedToRole");
+            sql.Append(" AND o.assigned_to_role = @AssignedToRole");
             parameters.Add("AssignedToRole", assignedToRole);
         }
         
         if (!string.IsNullOrEmpty(status))
         {
-            sql.Append(" AND incident_status = @Status");
+            sql.Append(" AND o.incident_status = @Status");
             parameters.Add("Status", status);
         }
         
-        sql.Append(" ORDER BY register DESC;");
+        sql.Append(" ORDER BY o.register DESC;");
         
         return await connection.QueryAsync<OrderIncident>(
             new CommandDefinition(sql.ToString(), parameters, cancellationToken: ct)

@@ -238,18 +238,26 @@
                                 <div class="queue-item @(isSelected ? "active" : "")" @onclick="() => SelectIncident(item)">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <h6 class="mb-0 fw-bold" style="font-size: 0.95rem;">@(item.CustomName ?? "Incidencia sin título")</h6>
-                                        @if (item.IncidentStatus == "RESOLVED")
-                                        {
-                                            <span class="badge-soft badge-low">Resuelta</span>
-                                        }
-                                        else if (isExpired)
-                                        {
-                                            <span class="badge-soft badge-expired">Vencido</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge-soft badge-medium">Abierta</span>
-                                        }
+                                        <div class="d-flex flex-column align-items-end gap-1">
+                                            @if (item.IncidentStatus == "RESOLVED")
+                                            {
+                                                <span class="badge-soft badge-low">Resuelta</span>
+                                            }
+                                            else if (isExpired)
+                                            {
+                                                <span class="badge-soft badge-expired">Vencido</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge-soft badge-medium">Abierta</span>
+                                            }
+
+                                            @if (item.Priority.HasValue)
+                                            {
+                                                var (prioClass, prioName) = GetPriorityDetails(item.Priority.Value);
+                                                <span class="badge-soft @prioClass" style="font-size: 0.65rem; padding: 0.15rem 0.4rem;">@prioName</span>
+                                            }
+                                        </div>
                                     </div>
                                     <p class="text-muted text-truncate mb-3" style="font-size: 0.85rem;">@(item.CustomDescription ?? "Sin descripción adicional")</p>
                                     <div class="d-flex justify-content-between align-items-center" style="font-size: 0.8rem;">
@@ -546,5 +554,16 @@
                 Console.WriteLine($"Error al resolver incidencia: {ex.Message}");
             }
         }
+    }
+
+    private (string Class, string Name) GetPriorityDetails(short priority)
+    {
+        return priority switch
+        {
+            1 => ("badge-high", "Alta"),
+            2 => ("badge-medium", "Media"),
+            3 => ("badge-low", "Baja"),
+            _ => ("badge-low", $"Prio: {priority}")
+        };
     }
 }
