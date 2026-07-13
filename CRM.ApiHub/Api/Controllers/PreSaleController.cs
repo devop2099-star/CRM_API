@@ -101,10 +101,9 @@ public class PreSaleController : ControllerBase
     public async Task<IActionResult> AddCallLog(int id, [FromBody] CallLogRequest request)
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
-        long userId = 1;
-        if (userIdClaim != null && long.TryParse(userIdClaim.Value, out long parsedId))
+        if (userIdClaim == null || !long.TryParse(userIdClaim.Value, out long userId))
         {
-            userId = parsedId;
+            return Unauthorized(new { message = "Usuario no autorizado." });
         }
 
         var result = await _repository.AddCallLogAsync(id, request.CallLog, userId);

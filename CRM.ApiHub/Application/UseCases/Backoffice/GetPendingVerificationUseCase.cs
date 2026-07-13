@@ -15,8 +15,8 @@ public class GetPendingVerificationUseCase
         _repository = repository;
     }
 
-    public async Task<IEnumerable<OrderDocument>> ExecuteAsync(CancellationToken ct = default)
+    public async Task<IEnumerable<OrderDocument>> ExecuteAsync(long backofficeId, CancellationToken ct = default)
     {
-        return await _repository.GetPendingVerificationAsync(ct);
+        return await _repository.GetPendingVerificationAsync(backofficeId, ct);
     }
 }
