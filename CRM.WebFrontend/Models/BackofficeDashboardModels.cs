@@ -23,3 +23,22 @@ public record OpenIncidentItem(
     string Status, 
     DateTime CreatedAt
 );
+
+public record BackofficeIncidentDto(
+    long IdOrderIncident,
+    long IdOrder,
+    long IdIncident,
+    string? CustomName,
+    string? CustomDescription,
+    string? IncidentStatus,
+    string? AssignedToRole,
+    DateTime? DueAt,
+    DateTime Register
+);
+
+public record KbArticleSuggestionDto(
+    long IdArticle,
+    string Title,
+    string Summary,
+    string Slug
+);

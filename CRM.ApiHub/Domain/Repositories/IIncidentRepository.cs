@@ -14,4 +14,5 @@ public interface IIncidentRepository
     Task<bool> DeleteAsync(long id);
     
     Task<IEnumerable<KbArticleSuggestion>> GetKbSuggestionsAsync(long idIncident);
+    Task<IEnumerable<OrderIncident>> GetFilteredAsync(string? assignedToRole, string? status, CancellationToken ct = default);
 }

@@ -125,6 +125,56 @@ public class BackofficeService : IBackofficeService
         }
     }
 
+    public async Task<IEnumerable<BackofficeIncidentDto>> GetIncidentsAsync(string? role = "BAC", string? status = "OPEN")
+    {
+        try
+        {
+            var url = $"api/incidents?assignedToRole={role}&status={status}";
+            var list = await _httpClient.GetFromJsonAsync<List<BackofficeIncidentDto>>(url);
+            return list ?? Enumerable.Empty<BackofficeIncidentDto>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetIncidentsAsync: {ex.Message}");
+            return Enumerable.Empty<BackofficeIncidentDto>();
+        }
+    }
+
+    public async Task<IEnumerable<KbArticleSuggestionDto>> GetKbSuggestionsAsync(long idIncident)
+    {
+        try
+        {
+            var list = await _httpClient.GetFromJsonAsync<List<KbArticleSuggestionDto>>($"api/incidents/{idIncident}/kb-suggestions");
+            return list ?? Enumerable.Empty<KbArticleSuggestionDto>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in GetKbSuggestionsAsync: {ex.Message}");
+            return Enumerable.Empty<KbArticleSuggestionDto>();
+        }
+    }
+
+    public async Task AddIncidentResponseAsync(long idIncident, string responseText, string responseType, long respondedBy)
+    {
+        var response = await _httpClient.PostAsJsonAsync($"api/incidents/{idIncident}/responses", new
+        {
+            ResponseText = responseText,
+            ResponseType = responseType,
+            RespondedBy = respondedBy
+        });
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task ResolveIncidentAsync(long idIncident, string notes, long resolvedBy)
+    {
+        var response = await _httpClient.PatchAsJsonAsync($"api/incidents/{idIncident}/resolve", new
+        {
+            Notes = notes,
+            ResolvedBy = resolvedBy
+        });
+        response.EnsureSuccessStatusCode();
+    }
+
     // Local DTOs
     private class OrderDocumentDto
     {

@@ -161,4 +161,20 @@ public class IncidentController : ControllerBase
 
         return Ok(new { message = "Incidencia resuelta correctamente." });
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetIncidents([FromQuery] string? assignedToRole, [FromQuery] string? status, CancellationToken ct)
+    {
+        var incidents = await _incidentRepository.GetFilteredAsync(assignedToRole, status, ct);
+        return Ok(incidents);
+    }
+
+    [HttpGet("{id:long}/kb-suggestions")]
+    public async Task<IActionResult> GetKbSuggestions(long id, CancellationToken ct)
+    {
+        var incident = await _incidentRepository.GetByIdAsync(id);
+        if (incident == null) return NotFound(new { message = "Incidencia no encontrada." });
+        var suggestions = await _incidentRepository.GetKbSuggestionsAsync(incident.IdIncident);
+        return Ok(suggestions);
+    }
 }
