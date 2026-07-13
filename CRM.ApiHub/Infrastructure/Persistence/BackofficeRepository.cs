@@ -1,0 +1,193 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using CRM.ApiHub.Domain.Entities;
+using CRM.ApiHub.Domain.Repositories;
+using Dapper;
+
+namespace CRM.ApiHub.Infrastructure.Persistence;
+
+public class BackofficeRepository : IBackofficeRepository
+{
+    private readonly IDbConnectionFactory _connectionFactory;
+
+    public BackofficeRepository(IDbConnectionFactory connectionFactory)
+    {
+        _connectionFactory = connectionFactory;
+    }
+
+    public async Task<IEnumerable<SalesOrder>> GetAssignedOrdersAsync(
+        long backofficeId,
+        long? userId,
+        long? statusId,
+        long? campaignId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken ct = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        var sql = new StringBuilder("SELECT * FROM sales_service.sales_order WHERE custody_user_id = @BackofficeId");
+        var parameters = new DynamicParameters();
+        parameters.Add("BackofficeId", backofficeId);
+
+        if (userId.HasValue)
+        {
+            sql.Append(" AND id_user = @UserId");
+            parameters.Add("UserId", userId.Value);
+        }
+        if (statusId.HasValue)
+        {
+            sql.Append(" AND id_status = @StatusId");
+            parameters.Add("StatusId", statusId.Value);
+        }
+        if (campaignId.HasValue)
+        {
+            sql.Append(" AND id_cmpg = @CampaignId");
+            parameters.Add("CampaignId", campaignId.Value);
+        }
+        if (dateFrom.HasValue)
+        {
+            sql.Append(" AND sales_date >= @DateFrom");
+            parameters.Add("DateFrom", dateFrom.Value);
+        }
+        if (dateTo.HasValue)
+        {
+            sql.Append(" AND sales_date <= @DateTo");
+            parameters.Add("DateTo", dateTo.Value);
+        }
+
+        sql.Append(" ORDER BY sales_date DESC;");
+
+        return await connection.QueryAsync<SalesOrder>(
+            new CommandDefinition(sql.ToString(), parameters, cancellationToken: ct)
+        );
+    }
+
+    public async Task<IEnumerable<OrderDocument>> GetPendingVerificationAsync(CancellationToken ct = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        const string sql = "SELECT * FROM sales_service.order_document WHERE verification_status = 'PENDING' AND is_active = true ORDER BY uploaded_at ASC;";
+        return await connection.QueryAsync<OrderDocument>(
+            new CommandDefinition(sql, cancellationToken: ct)
+        );
+    }
+
+    public async Task<bool> UpdateOrderStatusAsync(
+        long idOrder,
+        long toStatusId,
+        long? toSubstatusId,
+        string? comment,
+        long actorId,
+        CancellationToken ct = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            connection.Open();
+        }
+
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            // 1. Establecer el ID de usuario actor en la sesión de PostgreSQL para que el trigger fn_log_order_status_change no falle
+            await connection.ExecuteAsync(
+                "SELECT set_config('app.current_user_id', @ActorIdStr, true);",
+                new { ActorIdStr = actorId.ToString() },
+                transaction: transaction
+            );
+
+            // 2. Obtener estado y subestado actuales con bloqueo FOR UPDATE
+            const string selectSql = "SELECT id_status, id_substatus FROM sales_service.sales_order WHERE id_order = @IdOrder FOR UPDATE;";
+            var current = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                new CommandDefinition(selectSql, new { IdOrder = idOrder }, transaction: transaction, cancellationToken: ct)
+            );
+
+            if (current == null)
+            {
+                transaction.Rollback();
+                return false;
+            }
+
+            long? fromStatusId = current.id_status != null ? (long?)current.id_status : null;
+            long? fromSubstatusId = current.id_substatus != null ? (long?)current.id_substatus : null;
+
+            // 3. Actualizar el estado y subestado en la orden (disparará el trigger fn_log_order_status_change)
+            const string updateSql = @"
+                UPDATE sales_service.sales_order 
+                SET id_status = @ToStatusId, id_substatus = @ToSubstatusId, last_update = NOW()
+                WHERE id_order = @IdOrder;";
+
+            var rowsAffected = await connection.ExecuteAsync(
+                new CommandDefinition(updateSql, new { ToStatusId = toStatusId, ToSubstatusId = toSubstatusId, IdOrder = idOrder }, transaction: transaction, cancellationToken: ct)
+            );
+
+            if (rowsAffected == 0)
+            {
+                transaction.Rollback();
+                return false;
+            }
+
+            // 4. Si el estado o subestado cambiaron, el trigger ya habrá insertado una fila de historial.
+            // La buscamos y actualizamos con comentarios.
+            if (fromStatusId != toStatusId || fromSubstatusId != toSubstatusId)
+            {
+                const string getHistoryIdSql = @"
+                    SELECT id_history 
+                    FROM sales_service.sales_order_status_history 
+                    WHERE id_order = @IdOrder 
+                    ORDER BY id_history DESC 
+                    LIMIT 1;";
+
+                var historyId = await connection.ExecuteScalarAsync<long?>(
+                    new CommandDefinition(getHistoryIdSql, new { IdOrder = idOrder }, transaction: transaction, cancellationToken: ct)
+                );
+
+                if (historyId.HasValue && !string.IsNullOrEmpty(comment))
+                {
+                    const string updateHistorySql = @"
+                        UPDATE sales_service.sales_order_status_history 
+                        SET comment = @Comment
+                        WHERE id_history = @HistoryId;";
+
+                    await connection.ExecuteAsync(
+                        new CommandDefinition(updateHistorySql, new { Comment = comment, HistoryId = historyId.Value }, transaction: transaction, cancellationToken: ct)
+                    );
+                }
+            }
+
+            transaction.Commit();
+            return true;
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+    }
+
+    public async Task<bool> VerifyDocumentAsync(
+        long idDoc,
+        string status,
+        string? notes,
+        long verifiedBy,
+        CancellationToken ct = default)
+    {
+        using var connection = _connectionFactory.CreateConnection();
+        const string sql = @"
+            UPDATE sales_service.order_document 
+            SET verification_status = @Status, 
+                verification_notes = @Notes, 
+                verified_by = @VerifiedBy, 
+                verified_at = NOW()
+            WHERE id_document = @IdDoc;";
+
+        var rowsAffected = await connection.ExecuteAsync(
+            new CommandDefinition(sql, new { Status = status, Notes = notes, VerifiedBy = verifiedBy, IdDoc = idDoc }, cancellationToken: ct)
+        );
+
+        return rowsAffected > 0;
+    }
+}
