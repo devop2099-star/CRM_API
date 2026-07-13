@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using CRM.ApiHub.Application.DTOs;
 using CRM.ApiHub.Application.Interfaces;
 using CRM.ApiHub.Domain.Repositories;
+using Microsoft.Extensions.Configuration;
 
 namespace CRM.ApiHub.Application.UseCases.Auth;
 
@@ -13,23 +14,29 @@ public class LoginUseCase
     private readonly IUserRepository _userRepository;
     private readonly IJwtTokenGenerator _tokenGenerator;
     private readonly IRefreshTokenStore _refreshTokenStore;
+    private readonly IConfiguration _configuration;
 
     public LoginUseCase(
         IUserRepository userRepository, 
         IJwtTokenGenerator tokenGenerator,
-        IRefreshTokenStore refreshTokenStore)
+        IRefreshTokenStore refreshTokenStore,
+        IConfiguration configuration)
     {
         _userRepository = userRepository;
         _tokenGenerator = tokenGenerator;
         _refreshTokenStore = refreshTokenStore;
+        _configuration = configuration;
     }
 
     public async Task<LoginResponse?> ExecuteAsync(LoginRequest request, string ipAddress, string userAgent, CancellationToken ct = default)
     {
-        bool isDevMode = string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Development", StringComparison.OrdinalIgnoreCase);
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        bool isDevMode = string.Equals(env, "Development", StringComparison.OrdinalIgnoreCase);
+        bool allowDevFallback = _configuration.GetValue<bool>("AuthSettings:AllowDevFallbackPassword", false);
+        bool isDevFallbackAllowed = isDevMode && allowDevFallback && !string.Equals(env, "Production", StringComparison.OrdinalIgnoreCase) && !string.Equals(env, "Staging", StringComparison.OrdinalIgnoreCase);
         
         // Developer fallback bypass as per README (only for generic test users)
-        if (isDevMode && request.Password == "password123")
+        if (isDevFallbackAllowed && request.Password == "password123")
         {
             if (request.Username == "test.supervisor")
             {
@@ -64,8 +71,8 @@ public class LoginUseCase
             return null;
         }
 
-        // 2. Verificar la contraseña usando BCrypt (con fallback de desarrollo 'password123' solo en ambiente Development)
-        bool isPasswordValid = (isDevMode && request.Password == "password123") || BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+        // 2. Verificar la contraseña usando BCrypt (con fallback de desarrollo 'password123' solo si está permitido)
+        bool isPasswordValid = (isDevFallbackAllowed && request.Password == "password123") || BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
         if (!isPasswordValid)
         {
             return null;
