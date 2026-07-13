@@ -45,6 +45,15 @@ public class SalesOrderController : ControllerBase
     {
         try
         {
+            if (!userId.HasValue)
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
+                if (userIdClaim != null && long.TryParse(userIdClaim.Value, out long parsedId))
+                {
+                    userId = parsedId;
+                }
+            }
+
             var orders = await _getSalesOrdersUseCase.ExecuteAsync(userId, statusId, campaignId, dateFrom, dateTo, ct);
             return Ok(orders);
         }
