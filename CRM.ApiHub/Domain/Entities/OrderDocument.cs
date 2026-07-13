@@ -50,4 +50,10 @@ public class OrderDocument
 
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
+
+    [NotMapped]
+    public string? CustomerName { get; set; }
+
+    [NotMapped]
+    public string? Priority { get; set; }
 }

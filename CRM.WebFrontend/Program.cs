@@ -63,7 +63,7 @@ builder.Services.AddReverseProxy()
         });
     });
 
-builder.Services.AddScoped<IBackofficeService, MockBackofficeService>();
+builder.Services.AddScoped<IBackofficeService, BackofficeService>();
 // Agregar servicios de MudBlazor
 builder.Services.AddMudServices();
 var app = builder.Build();

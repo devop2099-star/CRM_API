@@ -70,9 +70,13 @@ public class BackofficeRepository : IBackofficeRepository
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
-            SELECT d.* 
+            SELECT d.*, 
+                   l.full_name AS CustomerName,
+                   COALESCE(c.custom_name, 'Media') AS Priority
             FROM sales_service.order_document d
             INNER JOIN sales_service.sales_order o ON d.id_order = o.id_order
+            INNER JOIN lead_service.lead l ON o.id_lead = l.id_lead
+            LEFT JOIN campaign_service.campaign c ON o.id_cmpg = c.id_cmpg
             WHERE o.custody_user_id = @BackofficeId 
               AND d.verification_status = 'PENDING' 
               AND d.is_active = true
