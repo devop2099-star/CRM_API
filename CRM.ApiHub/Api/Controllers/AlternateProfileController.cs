@@ -36,14 +36,9 @@ public class AlternateProfileController : ControllerBase
                         ?? User.FindFirst("id_user")
                         ?? User.FindFirst("userId");
 
-        long createdBy = 1;
-        if (userClaim != null && long.TryParse(userClaim.Value, out long parsedId))
+        if (userClaim == null || !long.TryParse(userClaim.Value, out long createdBy))
         {
-            createdBy = parsedId;
-        }
-        else if (dto.CreatedBy > 0)
-        {
-            createdBy = dto.CreatedBy;
+            return Unauthorized(new { message = "Usuario no autorizado." });
         }
 
         var profile = new AlternateProfile 
