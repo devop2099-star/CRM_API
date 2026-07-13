@@ -46,6 +46,16 @@ namespace CRM.ApiHub.Infrastructure.Persistence
             });
         }
 
+        public async Task<long> CreateApprovalRequestAsync(long idOrder, string reason, long requestedBy)
+        {
+            using var connection = await _dbConnectionFactory.CreateConnectionAsync();
+            var sql = @"INSERT INTO sales_service.sales_order_approval 
+                        (id_order, approval_type, status, requested_by, approval_reason, register) 
+                        VALUES (@IdOrder, 'MANUAL', 'PENDING', @RequestedBy, @Reason, NOW()) 
+                        RETURNING id_approval;";
+            return await connection.ExecuteScalarAsync<long>(sql, new { IdOrder = idOrder, RequestedBy = requestedBy, Reason = reason });
+        }
+
         public async Task<bool> UpdateApprovalAsync(long idApproval, string status, string comments, long authorizedBy)
         {
             var sql = @"UPDATE sales_service.sales_order_approval 

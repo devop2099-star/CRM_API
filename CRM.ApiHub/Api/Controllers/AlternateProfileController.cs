@@ -31,6 +31,21 @@ public class AlternateProfileController : ControllerBase
     {
         if (dto == null) return BadRequest("Datos de perfil alterno inválidos.");
 
+        var userClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) 
+                        ?? User.FindFirst("sub")
+                        ?? User.FindFirst("id_user")
+                        ?? User.FindFirst("userId");
+
+        long createdBy = 1;
+        if (userClaim != null && long.TryParse(userClaim.Value, out long parsedId))
+        {
+            createdBy = parsedId;
+        }
+        else if (dto.CreatedBy > 0)
+        {
+            createdBy = dto.CreatedBy;
+        }
+
         var profile = new AlternateProfile 
         {
             IdOrder = id,
@@ -38,7 +53,7 @@ public class AlternateProfileController : ControllerBase
             AlternateData = dto.AlternateData,
             OriginalData = dto.OriginalData,
             Reason = dto.Reason,
-            CreatedBy = dto.CreatedBy
+            CreatedBy = createdBy
         };
 
         var alternateId = await _repository.CreateAsync(profile);
