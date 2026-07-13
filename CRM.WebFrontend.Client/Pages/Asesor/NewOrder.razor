@@ -1,11 +1,13 @@
 @page "/asesor/orders/new"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using System.Net.Http.Json
 @using CRM.WebFrontend.Client.Models
 @using System.Text.RegularExpressions
 @using MudBlazor
 @inject IHttpClientFactory HttpClientFactory
+@inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @attribute [Authorize(Roles = "ASESOR")]
@@ -29,9 +31,20 @@
         <!-- Paso 1: Selección de Campaña y Pipeline -->
         <div class="card shadow-sm border-0 rounded-4 mb-4">
             <div class="card-body p-4">
-                <h5 class="fw-bold text-dark mb-4">1. Selección de Campaña y Etapa</h5>
+                <h5 class="fw-bold text-dark mb-4">1. Selección de Cliente, Campaña y Etapa</h5>
                 
                 <div class="row g-4">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Cliente (Lead)</label>
+                        <select class="form-select form-select-lg rounded-3" @bind="selectedLeadId">
+                            <option value="0" disabled selected="@(selectedLeadId == 0)">-- Selecciona un cliente --</option>
+                            @foreach (var l in leads)
+                            {
+                                <option value="@l.IdLead">@l.FirstName @l.LastName</option>
+                            }
+                        </select>
+                    </div>
+                    
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Campaña</label>
                         <select class="form-select form-select-lg rounded-3" value="@selectedCampaignId" @onchange="OnCampaignSelected">
@@ -169,17 +182,39 @@
     private bool isLoadingInitialData = true;
     private bool isLoadingSchema = false;
     private bool isSaving = false;
+    private int currentUserId = 0;
+
+    public class LeadSimpleDto
+    {
+        public long IdLead { get; set; }
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+    }
 
     private List<CampaignDto> campaigns = new();
     private List<OrderStatusDto> statuses = new();
+    private List<LeadSimpleDto> leads = new();
     
     private int selectedCampaignId = 0;
     private int selectedStatusId = 0;
+    private long selectedLeadId = 0;
 
     private FormSchemaDto? formSchema = null;
 
     protected override async Task OnInitializedAsync()
     {
+        // Extraer userId del JWT
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userIdStr = user.FindFirst("id_user")?.Value ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdStr, out int uid))
+            {
+                currentUserId = uid;
+            }
+        }
+
         try
         {
             var client = HttpClientFactory.CreateClient("BackendApi");
@@ -187,6 +222,12 @@
             if (result != null)
             {
                 campaigns = result;
+            }
+            
+            var leadsResult = await client.GetFromJsonAsync<List<LeadSimpleDto>>("/api/leads");
+            if (leadsResult != null)
+            {
+                leads = leadsResult;
             }
         }
         catch (Exception ex)
@@ -327,15 +368,21 @@
     private async Task HandleSubmit()
     {
         if (formSchema == null) return;
+        
+        if (selectedLeadId == 0)
+        {
+            Snackbar.Add("Debes seleccionar un cliente (Lead) para la orden.", Severity.Warning);
+            return;
+        }
 
         isSaving = true;
         try
         {
             var createOrderDto = new
             {
-                idLead = 1,
+                idLead = selectedLeadId,
                 idCmpg = selectedCampaignId,
-                idUser = 101, // Mock user ID for now
+                idUser = currentUserId, // Extraído del JWT del usuario autenticado
                 idStatus = selectedStatusId,
                 status = "PENDING_VALIDATION"
             };

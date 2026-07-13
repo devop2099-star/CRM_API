@@ -153,6 +153,55 @@
     </div>
 </div>
 
+@if (selectedOrder != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold text-primary">Detalle de Orden #@selectedOrder.IdOrder</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDetail"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <span class="d-block text-muted small fw-bold">Cliente</span>
+                            <span class="d-block fw-medium">@selectedOrder.ClientName</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="d-block text-muted small fw-bold">Campaña</span>
+                            <span class="d-block fw-medium">@selectedOrder.CampaignName</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="d-block text-muted small fw-bold">Estado</span>
+                            <span class="badge rounded-pill px-3 mt-1" style="background-color: @(selectedOrder.StatusColor ?? "#6c757d"); color: #fff;">
+                                @selectedOrder.StatusName
+                            </span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="d-block text-muted small fw-bold">Substatus</span>
+                            <span class="d-block">@(string.IsNullOrEmpty(selectedOrder.SubstatusName) ? "-" : selectedOrder.SubstatusName)</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="d-block text-muted small fw-bold">Fecha</span>
+                            <span class="d-block">@selectedOrder.SalesDate.ToString("dd/MM/yyyy")</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="d-block text-muted small fw-bold">Días Transcurridos</span>
+                            <span class="fw-bold @(selectedOrder.DaysElapsed > 5 ? "text-danger" : "text-success")">
+                                @selectedOrder.DaysElapsed días
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="CloseDetail">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     public class SalesOrderListDto
     {
@@ -173,6 +222,7 @@
 
     private List<SalesOrderListDto> allOrders = new();
     private List<SalesOrderListDto> pagedOrders = new();
+    private SalesOrderListDto? selectedOrder;
     
     private List<LookupDto> filterStatuses = new();
     private List<LookupDto> filterCampaigns = new();
@@ -240,7 +290,7 @@
         {
             var client = HttpClientFactory.CreateClient("BackendApi");
             
-            var query = $"/api/campaigns/orders?userId={currentUserId}";
+            var query = $"/api/orders?userId={currentUserId}";
             if (filterStatusId.HasValue) query += $"&statusId={filterStatusId}";
             if (filterCampaignId.HasValue) query += $"&campaignId={filterCampaignId}";
             if (filterDateFrom.HasValue) query += $"&dateFrom={filterDateFrom.Value:yyyy-MM-dd}";
@@ -257,6 +307,28 @@
                     o.StatusColor = matchedStatus?.Color ?? "#6c757d";
                     o.ClientName = !string.IsNullOrEmpty(o.ClientName) ? o.ClientName : $"Cliente Lead #{o.IdLead}";
                 }
+
+                // Fetch real lead names from Lead API
+                var uniqueLeadIds = result.Select(o => o.IdLead).Distinct().ToList();
+                foreach (var leadId in uniqueLeadIds)
+                {
+                    try
+                    {
+                        var leadData = await client.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/leads/{leadId}");
+                        string fName = leadData.GetProperty("firstName").GetString() ?? "";
+                        string lName = leadData.GetProperty("lastName").GetString() ?? "";
+                        string realName = $"{fName} {lName}".Trim();
+                        if (!string.IsNullOrEmpty(realName))
+                        {
+                            foreach (var o in result.Where(x => x.IdLead == leadId))
+                            {
+                                o.ClientName = realName;
+                            }
+                        }
+                    }
+                    catch { /* ignore, keep original ClientName if not found */ }
+                }
+
                 allOrders = result;
                 UpdatePagedOrders();
             }
@@ -303,7 +375,11 @@
 
     private void GoToDetail(long idOrder)
     {
-        // El detalle de la orden aún no está implementado en la UI
-        Snackbar.Add($"El detalle para la orden #{idOrder} estará disponible próximamente.", Severity.Info);
+        selectedOrder = allOrders.FirstOrDefault(o => o.IdOrder == idOrder);
+    }
+    
+    private void CloseDetail()
+    {
+        selectedOrder = null;
     }
 }
