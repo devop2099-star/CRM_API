@@ -4,6 +4,8 @@ using CRM.ApiHub.Application.UseCases.Auth;
 using CRM.ApiHub.Application.UseCases.Leads;
 using CRM.ApiHub.Application.UseCases.SalesOrders;
 using CRM.ApiHub.Application.UseCases.Documents;
+using CRM.ApiHub.Application.UseCases.Supervisor;
+using CRM.ApiHub.Application.UseCases.Backoffice;
 using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Infrastructure.Authentication;
 using CRM.ApiHub.Infrastructure.Persistence;
@@ -35,12 +37,15 @@ public static class DependencyInjection
         services.AddScoped<ILeadRepository, LeadRepository>();
         services.AddScoped<ISalesOrderRepository, SalesOrderRepository>();
         services.AddScoped<IOrderDocumentRepository, OrderDocumentRepository>();
-        services.AddScoped<IFormRepository, FormRepository>();
-        services.AddScoped<IOrderDataRepository, OrderDataRepository>();
+        services.AddScoped<ISupervisorRepository, SupervisorRepository>();
+        services.AddScoped<IBackofficeRepository, BackofficeRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IIncidentRepository, IncidentRepository>();
-        services.AddScoped<IAlternateProfileRepository, AlternateProfileRepository>();
+        services.AddScoped<IOrderDataRepository, OrderDataRepository>();
+        services.AddScoped<IFormRepository, FormRepository>();
         services.AddScoped<IApprovalRepository, ApprovalRepository>();
+        services.AddScoped<IAlternateProfileRepository, AlternateProfileRepository>();
+
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
@@ -66,6 +71,17 @@ public static class DependencyInjection
         services.AddScoped<GetDocumentsByOrderUseCase>();
         services.AddScoped<UploadOrderDocumentUseCase>();
         services.AddScoped<VerifyOrderDocumentUseCase>();
+
+        // Supervisor Use Cases
+        services.AddScoped<GetTeamOrdersUseCase>();
+        services.AddScoped<GetTeamStatsUseCase>();
+        services.AddScoped<BulkTransferToBackofficeUseCase>();
+
+        // Backoffice Use Cases
+        services.AddScoped<GetAssignedOrdersUseCase>();
+        services.AddScoped<GetPendingVerificationUseCase>();
+        services.AddScoped<UpdateBackofficeOrderStatusUseCase>();
+        services.AddScoped<VerifyBackofficeDocumentUseCase>();
 
         // JWT Authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

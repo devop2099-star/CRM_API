@@ -4,6 +4,8 @@ using CRM.ApiHub.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using CRM.ApiHub.Api.Filters;
 using System.Security.Claims;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
 
 namespace CRM.ApiHub.Api.Controllers;
 
@@ -39,9 +41,36 @@ public class PreSaleController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetByUser([FromQuery] int userId)
+    public async Task<IActionResult> GetByUser([FromQuery] long? userId)
     {
-        var preSales = await _repository.GetByUserAsync(userId);
+        var userClaim = User.FindFirst(ClaimTypes.NameIdentifier) 
+                        ?? User.FindFirst("sub")
+                        ?? User.FindFirst("id_user")
+                        ?? User.FindFirst("userId");
+
+        if (userClaim == null || !long.TryParse(userClaim.Value, out long authenticatedUserId))
+        {
+            return Unauthorized(new { message = "Usuario no autenticado o token inválido." });
+        }
+
+        long targetUserId = authenticatedUserId;
+        if (userId.HasValue && userId.Value != authenticatedUserId)
+        {
+            var userRoles = User.FindAll(ClaimTypes.Role).Select(c => c.Value)
+                            .Concat(User.FindAll("roles").Select(c => c.Value))
+                            .ToList();
+
+            if (userRoles.Contains("SUPERVISOR") || userRoles.Contains("BACKOFFICE"))
+            {
+                targetUserId = userId.Value;
+            }
+            else
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = "No tienes permisos para consultar las pre-ventas de otro usuario." });
+            }
+        }
+
+        var preSales = await _repository.GetByUserAsync((int)targetUserId);
         return Ok(preSales);
     }
 
@@ -92,10 +121,25 @@ public class PreSaleController : ControllerBase
     }
 
     [HttpPost("{id}/convert")]
-    public async Task<IActionResult> Convert(int id, [FromBody] ConvertRequest request)
+    public async Task<IActionResult> Convert(int id, [FromBody] ConvertRequest? request)
     {
-        var result = await _repository.ConvertAsync(id, new { UserId = request.UserId });
-        if (!result) return BadRequest(new { message = "No se pudo convertír la pre-venta." });
+        var userClaim = User.FindFirst(ClaimTypes.NameIdentifier) 
+                        ?? User.FindFirst("sub")
+                        ?? User.FindFirst("id_user")
+                        ?? User.FindFirst("userId");
+
+        long authenticatedUserId = 1; // fallback
+        if (userClaim != null && long.TryParse(userClaim.Value, out long parsedId))
+        {
+            authenticatedUserId = parsedId;
+        }
+        else if (request != null && request.UserId > 0)
+        {
+            authenticatedUserId = request.UserId;
+        }
+
+        var result = await _repository.ConvertAsync(id, new { UserId = (int)authenticatedUserId });
+        if (!result) return BadRequest(new { message = "No se pudo convertir la pre-venta o ya fue convertida." });
         return Ok(new { message = "Pre-venta convertida a cliente con éxito." });
     }
 }

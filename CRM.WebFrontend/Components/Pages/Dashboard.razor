@@ -1,0 +1,329 @@
+@page "/backoffice/dashboard"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "BACKOFFICE")]
+@using CRM.WebFrontend.Models
+@using CRM.WebFrontend.Services
+@inject IBackofficeService BackofficeService
+
+<style>
+    /* Tipografía nativa y colores premium */
+    :root {
+        --bg-app: #f4f4f5; /* zinc-100 */
+        --surface: #ffffff;
+        --border-color: #e4e4e7; /* zinc-200 */
+        --text-main: #18181b; /* zinc-900 */
+        --text-muted: #71717a; /* zinc-500 */
+        --accent: #09090b; /* zinc-950 */
+        --radius-lg: 16px;
+        --radius-md: 12px;
+        --radius-sm: 8px;
+    }
+
+    body {
+        background-color: var(--bg-app);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text-main);
+    }
+
+    /* Paneles de precisión */
+    .premium-panel {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.01);
+    }
+
+    /* Tipografía refinada */
+    .section-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+    }
+
+    .data-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+        display: block;
+    }
+
+    .data-value {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text-main);
+    }
+
+    /* Lista de cola (Queue) */
+    .queue-item {
+        background: var(--surface);
+        border: 1px solid transparent;
+        border-radius: var(--radius-md);
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .queue-item:hover {
+        background: #fafafa;
+    }
+
+    .queue-item.active {
+        background: var(--surface);
+        border-color: var(--text-main);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    /* Badges minimalistas */
+    .badge-soft {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    .badge-high { background: #fee2e2; color: #991b1b; }
+    .badge-medium { background: #fef3c7; color: #92400e; }
+    .badge-low { background: #f4f4f5; color: #3f3f46; }
+
+    /* Visor de DNI */
+    .doc-viewer {
+        background: #f8fafc;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        height: 320px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .data-card {
+        background: #fafafa;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 16px;
+    }
+
+    /* Inputs y Botones */
+    .premium-input {
+        background: #fafafa;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        color: var(--text-main);
+        transition: border-color 0.2s;
+        width: 100%;
+        outline: none;
+    }
+    .premium-input:focus {
+        border-color: var(--text-muted);
+        background: var(--surface);
+    }
+
+    .btn-premium {
+        padding: 10px 20px;
+        border-radius: var(--radius-sm);
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+    }
+    
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: #27272a; }
+    
+    .btn-secondary { background: var(--surface); color: var(--text-main); border: 1px solid var(--border-color); }
+    .btn-secondary:hover { background: #f4f4f5; }
+    
+    .btn-danger-soft { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .btn-danger-soft:hover { background: #fee2e2; }
+
+    /* Panel de alertas */
+    .alert-panel {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: var(--radius-md);
+        padding: 16px;
+    }
+</style>
+
+<div class="container-fluid py-4 px-md-4" style="max-width: 1600px;">
+    <div class="d-flex align-items-center mb-4">
+        <h3 class="fw-bold mb-0" style="color: var(--accent); letter-spacing: -0.5px;">BackOffice</h3>
+        <span class="mx-3 text-muted">/</span>
+        <span class="text-muted fs-5">Verificación de Documentos</span>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <span class="text-muted">Sincronizando bandeja...</span>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <div class="col-xl-3 col-lg-4">
+                <div class="premium-panel p-4 h-100">
+                    <h6 class="section-title mb-4">Bandeja de Entrada</h6>
+                    
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var item in _queue!)
+                        {
+                            var isSelected = _currentDoc?.IdOrder == item.IdOrder;
+                            var badgeClass = item.Priority == "Alta" ? "badge-high" : (item.Priority == "Media" ? "badge-medium" : "badge-low");
+                            
+                            <div class="queue-item @(isSelected ? "active" : "")" @onclick="() => SelectOrder(item.IdOrder)">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0 fw-bold" style="font-size: 0.95rem;">@item.CustomerName</h6>
+                                    <span class="badge-soft @badgeClass">@item.Priority</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted" style="font-size: 0.8rem;">Ord. #@item.IdOrder</span>
+                                    <span class="text-muted" style="font-size: 0.8rem;">@item.SubmittedAt.ToString("HH:mm")</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-9 col-lg-8">
+                @if (_currentDoc == null)
+                {
+                    <div class="premium-panel d-flex flex-column align-items-center justify-content-center h-100 p-5 text-center">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--border-color); margin-bottom: 1rem;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <h5 class="fw-bold text-dark">Ningún documento seleccionado</h5>
+                        <p class="text-muted">Selecciona un registro de la bandeja para iniciar la revisión.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-4">
+                        <div class="premium-panel p-4 p-xl-5">
+                            <h5 class="fw-bold mb-4" style="letter-spacing: -0.5px;">Revisión de Identidad</h5>
+                            
+                            <div class="row g-4 g-xl-5 mb-5">
+                                <div class="col-xl-7">
+                                    <span class="section-title mb-3 d-block">Documento Adjunto (DNI Frontal)</span>
+                                    <div class="doc-viewer">
+                                        <img src="@_currentDoc.DocumentImageUrl" alt="DNI" class="img-fluid object-fit-cover w-100 h-100" />
+                                    </div>
+                                </div>
+                                
+                                <div class="col-xl-5">
+                                    <span class="section-title mb-3 d-block">Contraste de Datos</span>
+                                    
+                                    <div class="data-card mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <span class="badge-soft badge-low">Datos de Ficha</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <span class="data-label">Nombre Completo</span>
+                                            <span class="data-value">@_currentDoc.FormFullName</span>
+                                        </div>
+                                        <div>
+                                            <span class="data-label">Número de Documento</span>
+                                            <span class="data-value">@_currentDoc.FormDocumentNumber</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="data-card">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <span class="badge-soft badge-low">Extracción OCR</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <span class="data-label">Nombre Extraído</span>
+                                            <span class="data-value">@_currentDoc.ScannedFullName</span>
+                                        </div>
+                                        <div>
+                                            <span class="data-label">Documento Extraído</span>
+                                            <span class="data-value">@_currentDoc.ScannedDocumentNumber</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4" style="background: #fafafa; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                                <div class="row align-items-end g-3">
+                                    <div class="col-xl-6">
+                                        <span class="data-label mb-2">Observaciones del agente (Opcional)</span>
+                                        <input type="text" class="premium-input" @bind="_observation" placeholder="Ej: Imagen borrosa, firma no coincide..." />
+                                    </div>
+                                    <div class="col-xl-6 d-flex gap-2 justify-content-xl-end">
+                                        <button class="btn-premium btn-danger-soft" @onclick='() => SubmitDecision("No coincide")'>No Coincide</button>
+                                        <button class="btn-premium btn-secondary" @onclick='() => SubmitDecision("Inválido")'>Inválido</button>
+                                        <button class="btn-premium btn-primary px-5" @onclick='() => SubmitDecision("Válido")'>Válido</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (_incidents != null && _incidents.Any())
+                        {
+                            <div class="alert-panel">
+                                <div class="d-flex align-items-center mb-3">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                    <h6 class="fw-bold mb-0" style="color: #92400e;">Incidencias Abiertas Detectadas</h6>
+                                </div>
+                                <div class="d-flex flex-column gap-2">
+                                    @foreach(var inc in _incidents)
+                                    {
+                                        <div class="d-flex justify-content-between align-items-center bg-white p-3" style="border-radius: var(--radius-sm); border: 1px solid #fde68a;">
+                                            <span style="font-size: 0.9rem; color: #92400e;">@inc.Description</span>
+                                            <span class="badge-soft" style="background: #fef3c7; color: #d97706;">@inc.Status</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private IEnumerable<SalesQueueItem>? _queue;
+    private DocumentVerificationData? _currentDoc;
+    private IEnumerable<OpenIncidentItem>? _incidents;
+    
+    private bool _isLoading = true;
+    private string _observation = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _queue = await BackofficeService.GetPendingQueueAsync();
+        _isLoading = false;
+    }
+
+    private async Task SelectOrder(long idOrder)
+    {
+        _currentDoc = null; 
+        _incidents = null;
+        
+        _currentDoc = await BackofficeService.GetVerificationDataAsync(idOrder);
+        _incidents = await BackofficeService.GetOpenIncidentsAsync(idOrder);
+        _observation = ""; 
+    }
+
+    private async Task SubmitDecision(string decision)
+    {
+        if (_currentDoc != null)
+        {
+            await BackofficeService.SubmitVerificationDecisionAsync(_currentDoc.IdOrder, decision, _observation);
+            
+            _isLoading = true;
+            _currentDoc = null;
+            _incidents = null;
+            _observation = "";
+            
+            _queue = await BackofficeService.GetPendingQueueAsync();
+            _isLoading = false;
+        }
+    }
+} 

@@ -40,44 +40,24 @@ public class ApprovalController : ControllerBase
     }
 
     [HttpPost("api/orders/{id:long}/approvals")]
-    [Authorize(Roles = "SUPERVISOR")]
+    [Authorize(Roles = "ASESOR,BACKOFFICE")]
     public async Task<IActionResult> ProcessApproval(long id, [FromBody] ApprovalRequestDto dto)
     {
-        if (dto == null) return BadRequest("Datos de aprobación inválidos.");
+        if (dto == null) return BadRequest("Datos de solicitud de aprobación inválidos.");
 
-        var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("roles")?.Value;
-        if (userRole != "SUPERVISOR")
+        var userClaim = User.FindFirst(ClaimTypes.NameIdentifier) 
+                        ?? User.FindFirst("sub")
+                        ?? User.FindFirst("id_user")
+                        ?? User.FindFirst("userId");
+
+        if (userClaim == null || !long.TryParse(userClaim.Value, out long requestedBy))
         {
-            return StatusCode(403, new { message = "Acceso denegado: Solo el rol SUPERVISOR puede registrar aprobaciones." });
+            return Unauthorized(new { message = "Usuario no autenticado o token inválido." });
         }
 
-        var approvalDto = new ApprovalDto
-        {
-            IdOrder = id,
-            AuthorizedBy = dto.AuthorizedBy,
-            Comments = dto.Comments,
-            IsApproved = dto.IsApproved
-        };
+        var approvalId = await _repository.CreateApprovalRequestAsync(id, dto.Comments, requestedBy);
 
-        var approvalId = await _repository.RegisterApprovalAsync(approvalDto);
-
-        // Emit internal notification on approval
-        if (dto.IsApproved)
-        {
-            var order = await _salesOrderRepository.GetByIdAsync(id);
-            if (order != null)
-            {
-                await _notificationService.SendNotificationAsync(
-                    userId: order.IdUser,
-                    title: "Orden Aprobada",
-                    message: $"Tu orden #{id} ha sido aprobada por el supervisor.",
-                    module: "Approvals",
-                    actionData: approvalId.ToString()
-                );
-            }
-        }
-
-        return CreatedAtAction(nameof(GetById), new { id = approvalId }, new { message = "Decisión de aprobación registrada.", id = approvalId });
+        return CreatedAtAction(nameof(GetById), new { id = approvalId }, new { message = "Solicitud de aprobación registrada como PENDING.", id = approvalId });
     }
 
     [HttpPatch("api/approvals/{id:long}")]
@@ -86,13 +66,17 @@ public class ApprovalController : ControllerBase
     {
         if (dto == null) return BadRequest("Datos de modificación inválidos.");
 
-        var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("roles")?.Value;
-        if (userRole != "SUPERVISOR")
+        var userClaim = User.FindFirst(ClaimTypes.NameIdentifier) 
+                        ?? User.FindFirst("sub")
+                        ?? User.FindFirst("id_user")
+                        ?? User.FindFirst("userId");
+
+        if (userClaim == null || !long.TryParse(userClaim.Value, out long supervisorId))
         {
-            return StatusCode(403, new { message = "Acceso denegado: Solo el rol SUPERVISOR puede modificar aprobaciones." });
+            return Unauthorized(new { message = "Usuario no autenticado o token inválido." });
         }
 
-        var success = await _repository.UpdateApprovalAsync(id, dto.Status, dto.Comments, dto.AuthorizedBy);
+        var success = await _repository.UpdateApprovalAsync(id, dto.Status, dto.Comments, supervisorId);
         if (!success)
         {
             return NotFound(new { message = "Aprobación no encontrada." });
