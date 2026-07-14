@@ -21,9 +21,9 @@
             <p class="text-muted mb-0">Vista del equipo por estado de venta.</p>
         </div>
         <div class="col-md-6 text-md-end">
-            <button class="btn btn-outline-primary rounded-pill px-4 me-3" @onclick='() => NavManager.NavigateTo("/supervisor/bulk-transfer")'>
+            <a class="btn btn-outline-primary rounded-pill px-4 me-3" href="/supervisor/bulk-transfer">
                 <span class="me-1">📤</span> Envío Masivo al BAC
-            </button>
+            </a>
             <div class="btn-group rounded-pill border" role="group">
                 <button class="btn @(viewMode == "kanban" ? "btn-primary" : "btn-light") rounded-start-pill px-4"
                         @onclick='() => viewMode = "kanban"'>

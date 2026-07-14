@@ -165,22 +165,32 @@
 }
 
 @code {
-    public class CampaignLookup { public int Id { get; set; } public string Name { get; set; } = ""; }
-    public class StatusDto { public long Id { get; set; } public string Name { get; set; } = ""; public string? Color { get; set; } }
-    public class UserDto { public long Id { get; set; } public string Name { get; set; } = ""; }
+    public class CampaignLookup { 
+        [System.Text.Json.Serialization.JsonPropertyName("id")] public int Id { get; set; } 
+        [System.Text.Json.Serialization.JsonPropertyName("name")] public string Name { get; set; } = ""; 
+    }
+    public class StatusDto { 
+        [System.Text.Json.Serialization.JsonPropertyName("id")] public long Id { get; set; } 
+        [System.Text.Json.Serialization.JsonPropertyName("name")] public string Name { get; set; } = ""; 
+        [System.Text.Json.Serialization.JsonPropertyName("color")] public string? Color { get; set; } 
+    }
+    public class UserDto { 
+        [System.Text.Json.Serialization.JsonPropertyName("id")] public long Id { get; set; } 
+        [System.Text.Json.Serialization.JsonPropertyName("name")] public string Name { get; set; } = ""; 
+    }
     
     public class SelectableOrder
     {
-        public long IdOrder { get; set; }
-        public long IdLead { get; set; }
-        public long IdCmpg { get; set; }
-        public long IdUser { get; set; }
-        public long? IdStatus { get; set; }
-        public DateTime SalesDate { get; set; }
-        public string ClientName { get; set; } = "";
-        public string CampaignName { get; set; } = "";
-        public string StatusName { get; set; } = "";
-        public string AdvisorName { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("idOrder")] public long IdOrder { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("idLead")] public long IdLead { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("idCmpg")] public long IdCmpg { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("idUser")] public long IdUser { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("idStatus")] public long? IdStatus { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("salesDate")] public DateTime SalesDate { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("clientName")] public string ClientName { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("campaignName")] public string CampaignName { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("statusName")] public string StatusName { get; set; } = "";
+        [System.Text.Json.Serialization.JsonPropertyName("advisorName")] public string AdvisorName { get; set; } = "";
         public int DaysElapsed => (DateTime.UtcNow - SalesDate).Days;
         public bool IsSelected { get; set; }
     }
@@ -215,7 +225,9 @@
                 var bacResult = await client.GetFromJsonAsync<List<UserDto>>("/api/campaigns/advisors?role=BACKOFFICE");
                 if (bacResult != null) backofficeUsers = bacResult;
             }
-            catch { /* ignora fallos menores para permitir visualizacion */ }
+            catch (Exception ex) { 
+                Console.WriteLine($"Error BAC: {ex.Message}");
+            }
 
             // 2. Cargar Asesores (para nombres)
             List<UserDto> advisors = new();
@@ -224,7 +236,9 @@
                 var advResult = await client.GetFromJsonAsync<List<UserDto>>("/api/campaigns/advisors?role=ASESOR");
                 if (advResult != null) advisors = advResult;
             }
-            catch { }
+            catch (Exception ex) { 
+                Console.WriteLine($"Error ASESOR: {ex.Message}");
+            }
 
             // 3. Cargar Campañas
             List<CampaignLookup> campaigns = new();
