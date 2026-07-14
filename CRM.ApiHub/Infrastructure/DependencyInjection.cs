@@ -8,6 +8,7 @@ using CRM.ApiHub.Application.UseCases.Supervisor;
 using CRM.ApiHub.Application.UseCases.Backoffice;
 using CRM.ApiHub.Application.UseCases.Audit;
 using CRM.ApiHub.Application.UseCases.KB;
+using CRM.ApiHub.Application.UseCases.Commissions;
 using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Infrastructure.Authentication;
 using CRM.ApiHub.Infrastructure.Persistence;
@@ -50,6 +51,8 @@ public static class DependencyInjection
         services.AddScoped<IAlternateProfileRepository, AlternateProfileRepository>();
         services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
+        services.AddScoped<ICurrencyRepository, CurrencyRepository>();
+        services.AddScoped<ICommissionRepository, CommissionRepository>();
 
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -108,6 +111,15 @@ public static class DependencyInjection
         services.AddScoped<SearchKbArticlesUseCase>();
         services.AddScoped<GetKbArticleByIdUseCase>();
         services.AddScoped<SubmitKbFeedbackUseCase>();
+
+        // Currency & Commission Use Cases
+        services.AddScoped<GetCurrenciesUseCase>();
+        services.AddScoped<ConvertAmountUseCase>();
+        services.AddScoped<GetSettlementsUseCase>();
+        services.AddScoped<CreateSettlementUseCase>();
+        services.AddScoped<AddSettlementItemsUseCase>();
+        services.AddScoped<UpdateSettlementStatusUseCase>();
+        services.AddScoped<DeleteSettlementUseCase>();
 
         // JWT Authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
