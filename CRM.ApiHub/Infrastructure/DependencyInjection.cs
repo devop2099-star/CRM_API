@@ -9,6 +9,7 @@ using CRM.ApiHub.Application.UseCases.Backoffice;
 using CRM.ApiHub.Application.UseCases.Audit;
 using CRM.ApiHub.Application.UseCases.KB;
 using CRM.ApiHub.Application.UseCases.Commissions;
+using CRM.ApiHub.Application.UseCases.Providers;
 using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Infrastructure.Authentication;
 using CRM.ApiHub.Infrastructure.Persistence;
@@ -53,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
         services.AddScoped<ICurrencyRepository, CurrencyRepository>();
         services.AddScoped<ICommissionRepository, CommissionRepository>();
+        services.AddScoped<IProviderRepository, ProviderRepository>();
 
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -120,6 +122,12 @@ public static class DependencyInjection
         services.AddScoped<AddSettlementItemsUseCase>();
         services.AddScoped<UpdateSettlementStatusUseCase>();
         services.AddScoped<DeleteSettlementUseCase>();
+
+        // Provider Use Cases
+        services.AddScoped<GetProviderCatalogUseCase>();
+        services.AddScoped<GetProviderStatusMappingUseCase>();
+        services.AddScoped<LogProviderSyncUseCase>();
+        services.AddScoped<UpdateOrderProviderStatusUseCase>();
 
         // JWT Authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
