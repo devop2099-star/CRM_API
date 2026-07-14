@@ -458,10 +458,8 @@
                     }
                     catch 
                     { 
-                        // Fallback for mock leads so it doesn't say "Lead #99998"
-                        realName = leadId == 99998 ? "Carlos Ruiz" : 
-                                   leadId == 88889 ? "María Gómez" : 
-                                   $"Cliente {leadId.ToString().Substring(0, Math.Min(3, leadId.ToString().Length))}";
+                        // If lead doesn't exist in the database, do not show these orders
+                        result.RemoveAll(x => x.IdLead == leadId);
                     }
 
                     if (!string.IsNullOrEmpty(realName))
