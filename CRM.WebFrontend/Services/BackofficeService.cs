@@ -77,7 +77,7 @@ public class BackofficeService : IBackofficeService
 
             return new DocumentVerificationData(
                 idOrder,
-                dniDoc.FilePath,
+                $"/api/documents/{dniDoc.IdDocument}/download",
                 expectedName,
                 expectedDocNum,
                 scannedName,

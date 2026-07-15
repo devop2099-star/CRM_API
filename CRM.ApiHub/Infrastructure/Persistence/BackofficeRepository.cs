@@ -72,7 +72,7 @@ public class BackofficeRepository : IBackofficeRepository
         const string sql = @"
             SELECT d.*, 
                    l.full_name AS CustomerName,
-                   COALESCE(c.custom_name, 'Media') AS Priority
+                   COALESCE(c.name, 'Media') AS Priority
             FROM sales_service.order_document d
             INNER JOIN sales_service.sales_order o ON d.id_order = o.id_order
             INNER JOIN lead_service.lead l ON o.id_lead = l.id_lead
