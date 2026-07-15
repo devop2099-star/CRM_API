@@ -1,14 +1,12 @@
 @page "/supervisor"
-@page "/backoffice"
-@page "/backoffice/dashboard"
 @using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "SUPERVISOR,BACKOFFICE")]
+@attribute [Authorize(Roles = "SUPERVISOR")]
 @inject NavigationManager Navigation
 
 @code {
-    private bool IsBackoffice => Navigation.Uri.Contains("/backoffice", StringComparison.OrdinalIgnoreCase);
-    private string DashboardTitle => IsBackoffice ? "Dashboard Backoffice" : "Centro de Mando - Supervisor";
-    private string DashboardSubtitle => IsBackoffice ? "Monitoreo general y gestión administrativa." : "Monitoreo en tiempo real del equipo de operaciones.";
+    private bool IsBackoffice => false;
+    private string DashboardTitle => "Centro de Mando - Supervisor";
+    private string DashboardSubtitle => "Monitoreo en tiempo real del equipo de operaciones.";
 }
 
 <PageTitle>@DashboardTitle</PageTitle>
