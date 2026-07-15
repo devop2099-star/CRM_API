@@ -98,7 +98,7 @@ public class SupervisorController : ControllerBase
 
         try
         {
-            var success = await _bulkTransferToBackofficeUseCase.ExecuteAsync(
+            var result = await _bulkTransferToBackofficeUseCase.ExecuteAsync(
                 dto.OrderIds,
                 supervisorId,
                 dto.BackofficeUserId,
@@ -106,12 +106,12 @@ public class SupervisorController : ControllerBase
                 ct
             );
 
-            if (!success)
+            if (result.SuccessfulCount == 0 && result.FailedCount > 0)
             {
-                return BadRequest(new { message = "No se pudo realizar la transferencia masiva." });
+                return BadRequest(new { message = "No se pudo realizar la transferencia masiva de ninguna orden.", details = result });
             }
 
-            return Ok(new { message = "Transferencia masiva realizada correctamente." });
+            return Ok(new { message = "Transferencia masiva procesada.", details = result });
         }
         catch (Exception ex)
         {

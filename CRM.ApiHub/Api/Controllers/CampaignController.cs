@@ -108,7 +108,7 @@ public class CampaignController : ControllerBase
     }
 
     [HttpGet("advisors")]
-    public async Task<IActionResult> GetAdvisors()
+    public async Task<IActionResult> GetAdvisors([FromQuery] string role = "ASESOR")
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
@@ -119,9 +119,9 @@ public class CampaignController : ControllerBase
             LEFT JOIN ext_ecosystem.collaborators col ON u.id_user = col.id_user
             LEFT JOIN access_control.user_role ur ON u.id_user = ur.id_user AND ur.is_active = true
             LEFT JOIN access_control.role r ON ur.id_role = r.id_role AND r.is_active = true
-            WHERE r.name = 'ASESOR'
+            WHERE r.name = @Role
             ORDER BY Name;";
-        var advisors = await connection.QueryAsync(sql);
+        var advisors = await connection.QueryAsync(sql, new { Role = role.ToUpper() });
         return Ok(advisors);
     }
 }
