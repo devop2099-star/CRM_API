@@ -126,43 +126,87 @@
     </div>
 </div>
 
-@* ───── Modal de Confirmación ───── *@
+@* ───── Modal de Confirmación / Transferencia / Éxito ───── *@
 @if (showModal)
 {
     <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4 border-0 shadow-lg">
-                <div class="modal-header border-bottom-0 pb-0">
-                    <h5 class="modal-title fw-bold text-primary">Confirmar Transferencia</h5>
-                    <button type="button" class="btn-close" @onclick="CloseConfirmation"></button>
-                </div>
-                <div class="modal-body py-4 text-center">
-                    <div class="mb-3">
-                        <i class="bi bi-arrow-right-circle text-primary" style="font-size: 3rem;"></i>
+                @if (transferPhase == "confirm")
+                {
+                    <div class="modal-header border-bottom-0 pb-0">
+                        <h5 class="modal-title fw-bold text-primary">Confirmar Transferencia</h5>
+                        <button type="button" class="btn-close" @onclick="CloseConfirmation"></button>
                     </div>
-                    <p class="fs-5 mb-1">Se transferirán <strong>@SelectedCount</strong> órdenes al BAC.</p>
-                    <p class="text-muted small">
-                        Analista destino: <strong>@(backofficeUsers.FirstOrDefault(b => b.Id == selectedBacUserId)?.Name)</strong>
-                    </p>
-                </div>
-                <div class="modal-footer border-top-0 pt-0 justify-content-center">
-                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="CloseConfirmation" disabled="@isTransferring">Cancelar</button>
-                    <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="ExecuteTransfer" disabled="@isTransferring">
-                        @if (isTransferring)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            <span>Procesando...</span>
-                        }
-                        else
-                        {
-                            <span>Confirmar Envío</span>
-                        }
-                    </button>
-                </div>
+                    <div class="modal-body py-4 text-center">
+                        <div class="mb-3">
+                            <span style="font-size: 3rem;">📤</span>
+                        </div>
+                        <p class="fs-5 mb-1">Se transferirán <strong>@SelectedCount</strong> órdenes al BAC.</p>
+                        <p class="text-muted small">
+                            Analista destino: <strong>@(backofficeUsers.FirstOrDefault(b => b.Id == selectedBacUserId)?.Name)</strong>
+                        </p>
+                    </div>
+                    <div class="modal-footer border-top-0 pt-0 justify-content-center">
+                        <button type="button" class="btn btn-light rounded-pill px-4" @onclick="CloseConfirmation">Cancelar</button>
+                        <button type="button" class="btn btn-primary rounded-pill px-4" @onclick="ExecuteTransfer">
+                            Confirmar Envío
+                        </button>
+                    </div>
+                }
+                else if (transferPhase == "transferring")
+                {
+                    <div class="modal-body py-5 text-center">
+                        <div class="mb-4">
+                            <div class="spinner-border text-primary" style="width: 3.5rem; height: 3.5rem;" role="status"></div>
+                        </div>
+                        <p class="fs-5 fw-bold text-primary mb-1">Transfiriendo...</p>
+                        <p class="text-muted small">Enviando @SelectedCount órdenes al Backoffice</p>
+                    </div>
+                }
+                else if (transferPhase == "success")
+                {
+                    <div class="modal-body py-5 text-center">
+                        <div class="mb-3 success-check-container">
+                            <svg class="success-checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" style="width: 72px; height: 72px;">
+                                <circle class="success-checkmark-circle" cx="26" cy="26" r="25" fill="none" stroke="#22c55e" stroke-width="2"/>
+                                <path class="success-checkmark-check" fill="none" stroke="#22c55e" stroke-width="3" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                            </svg>
+                        </div>
+                        <p class="fs-4 fw-bold text-success mb-1">¡Transferido!</p>
+                        <p class="text-muted small">Las órdenes fueron enviadas exitosamente al BAC</p>
+                        <p class="text-muted small">Redirigiendo al Kanban...</p>
+                    </div>
+                }
             </div>
         </div>
     </div>
 }
+
+<style>
+    .success-checkmark-circle {
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        animation: stroke-anim 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+    .success-checkmark-check {
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: stroke-anim 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.4s forwards;
+    }
+    @@keyframes stroke-anim {
+        100% {
+            stroke-dashoffset: 0;
+        }
+    }
+    .success-check-container {
+        animation: scale-in 0.3s ease-out;
+    }
+    @@keyframes scale-in {
+        0% { transform: scale(0); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+</style>
 
 @code {
     public class CampaignLookup { 
@@ -198,6 +242,7 @@
     private bool isLoading = true;
     private bool isTransferring = false;
     private bool showModal = false;
+    private string transferPhase = "confirm"; // confirm, transferring, success
     
     private List<SelectableOrder> orders = new();
     private List<UserDto> backofficeUsers = new();
@@ -335,6 +380,7 @@
         if (!isTransferring)
         {
             showModal = false;
+            transferPhase = "confirm";
         }
     }
 
@@ -345,6 +391,8 @@
         if (selectedOrderIds.Length == 0 || selectedBacUserId == 0) return;
 
         isTransferring = true;
+        transferPhase = "transferring";
+        StateHasChanged();
 
         try
         {
@@ -360,10 +408,17 @@
 
             if (response.IsSuccessStatusCode)
             {
-                Snackbar.Add($"{selectedOrderIds.Length} órdenes transferidas exitosamente.", Severity.Success);
-                showModal = false;
+                // Show success phase with check animation
+                transferPhase = "success";
+                StateHasChanged();
                 
-                // Redirigir al Kanban como solicita el requerimiento: "Actualiza kanban automáticamente"
+                // Wait for user to see the success animation
+                await Task.Delay(2500);
+                
+                showModal = false;
+                transferPhase = "confirm";
+                
+                // Redirect to Kanban
                 NavManager.NavigateTo("/supervisor/dashboard");
             }
             else
@@ -372,12 +427,14 @@
                 string msg = error.TryGetProperty("message", out var m) ? m.GetString() ?? "Error desconocido" : "Error desconocido";
                 Snackbar.Add($"No se pudieron transferir las órdenes: {msg}", Severity.Error);
                 showModal = false;
+                transferPhase = "confirm";
             }
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error de conexión: {ex.Message}", Severity.Error);
             showModal = false;
+            transferPhase = "confirm";
         }
         finally
         {

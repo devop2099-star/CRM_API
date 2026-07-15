@@ -21,9 +21,17 @@
             <p class="text-muted mb-0">Vista del equipo por estado de venta.</p>
         </div>
         <div class="col-md-6 text-md-end">
-            <a class="btn btn-outline-primary rounded-pill px-4 me-3" href="/supervisor/bulk-transfer">
-                <span class="me-1">📤</span> Envío Masivo al BAC
-            </a>
+            <button class="btn btn-outline-primary rounded-pill px-4 me-3" @onclick="NavigateToBulkTransfer" disabled="@isNavigating">
+                @if (isNavigating)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    <span>Derivando...</span>
+                }
+                else
+                {
+                    <span class="me-1">📤</span> <span>Envío Masivo al BAC</span>
+                }
+            </button>
             <div class="btn-group rounded-pill border" role="group">
                 <button class="btn @(viewMode == "kanban" ? "btn-primary" : "btn-light") rounded-start-pill px-4"
                         @onclick='() => viewMode = "kanban"'>
@@ -149,6 +157,14 @@
                                     <span class="badge bg-light text-dark border small">@order.CampaignName</span>
                                     <span class="text-muted" style="font-size: 0.7rem;" title="@order.AdvisorName">@order.AdvisorName</span>
                                 </div>
+                                @if (!string.IsNullOrEmpty(order.BackofficeName))
+                                {
+                                    <div class="mt-1">
+                                        <span class="badge bg-info bg-opacity-10 text-info border border-info small">
+                                            🏢 @order.BackofficeName
+                                        </span>
+                                    </div>
+                                }
                             </div>
                         </div>
                     }
@@ -291,6 +307,17 @@
     </div>
 }
 
+@* ───── Overlay Derivando ───── *@
+@if (isNavigating)
+{
+    <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.45); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+        <div class="text-center text-white">
+            <div class="spinner-border text-light mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+            <p class="fs-5 fw-bold">Derivando a Envío Masivo...</p>
+        </div>
+    </div>
+}
+
 <style>
     .kanban-board::-webkit-scrollbar {
         height: 8px;
@@ -325,12 +352,14 @@
         public long IdUser { get; set; }
         public long? IdStatus { get; set; }
         public long? IdSubstatus { get; set; }
+        public long? CustodyUserId { get; set; }
         public DateTime SalesDate { get; set; }
         public string ClientName { get; set; } = "";
         public string CampaignName { get; set; } = "";
         public string StatusName { get; set; } = "";
         public string? StatusColor { get; set; }
         public string AdvisorName { get; set; } = "";
+        public string BackofficeName { get; set; } = "";
         public int DaysElapsed => (DateTime.UtcNow - SalesDate).Days;
     }
 
@@ -344,10 +373,12 @@
     private string viewMode = "kanban";
     private bool isLoading = true;
     private bool isUpdatingStatus = false;
+    private bool isNavigating = false;
 
     private List<CampaignLookup> campaigns = new();
     private List<StatusDto> statuses = new();
     private List<AdvisorDto> globalAdvisors = new();
+    private List<AdvisorDto> backofficeUsers = new();
     private List<TeamOrderDto> allOrders = new();
     private List<TeamOrderDto> filteredOrders = new();
     private List<AdvisorLookup> advisorList = new();
@@ -376,6 +407,14 @@
             {
                 var advResult = await client.GetFromJsonAsync<List<AdvisorDto>>("/api/campaigns/advisors");
                 if (advResult != null) globalAdvisors = advResult;
+            }
+            catch { /* fallback to empty */ }
+
+            // Load backoffice users for name resolution
+            try
+            {
+                var bacResult = await client.GetFromJsonAsync<List<AdvisorDto>>("/api/campaigns/advisors?role=BACKOFFICE");
+                if (bacResult != null) backofficeUsers = bacResult;
             }
             catch { /* fallback to empty */ }
 
@@ -444,6 +483,13 @@
                     
                     var adv = globalAdvisors.FirstOrDefault(a => a.Id == o.IdUser);
                     o.AdvisorName = adv != null && !string.IsNullOrWhiteSpace(adv.Name) ? adv.Name : $"Asesor {o.IdUser}";
+                    
+                    // Resolve backoffice analyst name when custody is assigned
+                    if (o.CustodyUserId.HasValue && o.CustodyUserId.Value > 0)
+                    {
+                        var bac = backofficeUsers.FirstOrDefault(b => b.Id == o.CustodyUserId.Value);
+                        o.BackofficeName = bac != null && !string.IsNullOrWhiteSpace(bac.Name) ? bac.Name : "";
+                    }
                     
                     o.ClientName = !string.IsNullOrEmpty(o.ClientName) ? o.ClientName : "";
                 }
@@ -595,5 +641,13 @@
     private void ShowDetail(TeamOrderDto order)
     {
         selectedOrder = order;
+    }
+
+    private async Task NavigateToBulkTransfer()
+    {
+        isNavigating = true;
+        StateHasChanged();
+        await Task.Delay(1200); // Show animation briefly
+        NavManager.NavigateTo("/supervisor/bulk-transfer");
     }
 }
