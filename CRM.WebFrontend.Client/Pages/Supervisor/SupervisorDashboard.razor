@@ -524,14 +524,10 @@
 
                 allOrders = result;
 
-                // Build advisor list from the orders (using effective owner)
+                // Build advisor list from the orders (only real advisors, no backoffice)
                 advisorList = allOrders
-                    .Select(o => new { 
-                        Id = (o.CustodyUserId.HasValue && o.CustodyUserId > 0) ? o.CustodyUserId.Value : o.IdUser, 
-                        Name = (o.CustodyUserId.HasValue && o.CustodyUserId > 0 && !string.IsNullOrEmpty(o.BackofficeName)) ? $"🏢 {o.BackofficeName}" : o.AdvisorName 
-                    })
-                    .GroupBy(x => x.Id)
-                    .Select(g => new AdvisorLookup { Id = g.Key, Name = g.First().Name })
+                    .GroupBy(o => o.IdUser)
+                    .Select(g => new AdvisorLookup { Id = g.Key, Name = g.First().AdvisorName })
                     .OrderBy(a => a.Name)
                     .ToList();
 
