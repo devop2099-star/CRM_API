@@ -17,7 +17,7 @@ public interface IBackofficeRepository
         DateTime? dateTo,
         CancellationToken ct = default);
 
-    Task<IEnumerable<OrderDocument>> GetPendingVerificationAsync(CancellationToken ct = default);
+    Task<IEnumerable<OrderDocument>> GetPendingVerificationAsync(long backofficeId, CancellationToken ct = default);
 
     Task<bool> UpdateOrderStatusAsync(
         long idOrder,

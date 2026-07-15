@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.ApiHub.Api.Controllers;
 
-[Authorize]
+[Authorize(Roles = "SUPERVISOR")]
 [ApiController]
 [Route("api/supervisor")]
 public class SupervisorController : ControllerBase

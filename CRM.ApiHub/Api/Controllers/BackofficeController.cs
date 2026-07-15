@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.ApiHub.Api.Controllers;
 
-[Authorize]
+[Authorize(Roles = "BACKOFFICE,SUPERVISOR")]
 [ApiController]
 [Route("api/backoffice")]
 public class BackofficeController : ControllerBase
@@ -60,9 +60,15 @@ public class BackofficeController : ControllerBase
     [HttpGet("pending-docs")]
     public async Task<IActionResult> GetPendingDocs(CancellationToken ct)
     {
+        var backofficeIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
+        if (backofficeIdClaim == null || !long.TryParse(backofficeIdClaim.Value, out long backofficeId))
+        {
+            return Unauthorized(new { message = "Usuario no autorizado." });
+        }
+
         try
         {
-            var docs = await _getPendingVerificationUseCase.ExecuteAsync(ct);
+            var docs = await _getPendingVerificationUseCase.ExecuteAsync(backofficeId, ct);
             return Ok(docs);
         }
         catch (Exception ex)

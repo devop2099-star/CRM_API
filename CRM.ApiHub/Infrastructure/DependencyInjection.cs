@@ -6,6 +6,8 @@ using CRM.ApiHub.Application.UseCases.SalesOrders;
 using CRM.ApiHub.Application.UseCases.Documents;
 using CRM.ApiHub.Application.UseCases.Supervisor;
 using CRM.ApiHub.Application.UseCases.Backoffice;
+using CRM.ApiHub.Application.UseCases.Audit;
+using CRM.ApiHub.Application.UseCases.KB;
 using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Infrastructure.Authentication;
 using CRM.ApiHub.Infrastructure.Persistence;
@@ -13,6 +15,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 
 namespace CRM.ApiHub.Infrastructure;
 
@@ -45,10 +48,22 @@ public static class DependencyInjection
         services.AddScoped<IFormRepository, FormRepository>();
         services.AddScoped<IApprovalRepository, ApprovalRepository>();
         services.AddScoped<IAlternateProfileRepository, AlternateProfileRepository>();
+        services.AddScoped<IAuditRepository, AuditRepository>();
+        services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
 
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
-        services.AddSingleton<IRefreshTokenStore, InMemoryRefreshTokenStore>();
+        services.AddSingleton<IConnectionMultiplexer>(sp => {
+            var configuration = sp.GetRequiredService<IConfiguration>();
+            var connStr = configuration["RedisSettings:ConnectionString"];
+            if (string.IsNullOrEmpty(connStr)) return null!;
+            try {
+                return ConnectionMultiplexer.Connect(connStr);
+            } catch {
+                return null!; // Fallback to InMemory
+            }
+        });
+        services.AddSingleton<IRefreshTokenStore, RedisRefreshTokenStore>();
         
         services.AddScoped<INotificationService, Application.Services.NotificationService>();
         // Use Cases
@@ -82,6 +97,17 @@ public static class DependencyInjection
         services.AddScoped<GetPendingVerificationUseCase>();
         services.AddScoped<UpdateBackofficeOrderStatusUseCase>();
         services.AddScoped<VerifyBackofficeDocumentUseCase>();
+
+        // Audit Use Cases
+        services.AddScoped<GetChecklistUseCase>();
+        services.AddScoped<CreateAuditUseCase>();
+        services.AddScoped<SaveAuditItemUseCase>();
+        services.AddScoped<CloseAuditUseCase>();
+
+        // KB Use Cases
+        services.AddScoped<SearchKbArticlesUseCase>();
+        services.AddScoped<GetKbArticleByIdUseCase>();
+        services.AddScoped<SubmitKbFeedbackUseCase>();
 
         // JWT Authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
