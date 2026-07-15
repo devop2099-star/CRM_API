@@ -155,17 +155,16 @@
                                 <p class="mb-1 fw-medium small text-truncate" title="@order.ClientName">@order.ClientName</p>
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <span class="badge bg-light text-dark border small">@order.CampaignName</span>
-                                    @if (!string.IsNullOrEmpty(order.BackofficeName))
-                                    {
+                                    <span class="text-muted" style="font-size: 0.65rem;" title="@order.AdvisorName">@order.AdvisorName</span>
+                                </div>
+                                @if (!string.IsNullOrEmpty(order.BackofficeName))
+                                {
+                                    <div class="mt-1 text-end">
                                         <span class="text-info fw-bold" style="font-size: 0.65rem;" title="@order.BackofficeName">
                                             🏢 @order.BackofficeName
                                         </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted" style="font-size: 0.65rem;" title="@order.AdvisorName">@order.AdvisorName</span>
-                                    }
-                                </div>
+                                    </div>
+                                }
                             </div>
                         </div>
                     }
