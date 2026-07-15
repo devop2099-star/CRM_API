@@ -155,16 +155,17 @@
                                 <p class="mb-1 fw-medium small text-truncate" title="@order.ClientName">@order.ClientName</p>
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <span class="badge bg-light text-dark border small">@order.CampaignName</span>
-                                    <span class="text-muted" style="font-size: 0.65rem;" title="@order.AdvisorName">@order.AdvisorName</span>
-                                </div>
-                                @if (!string.IsNullOrEmpty(order.BackofficeName))
-                                {
-                                    <div class="mt-1 text-end">
+                                    @if (!string.IsNullOrEmpty(order.BackofficeName))
+                                    {
                                         <span class="text-info fw-bold" style="font-size: 0.65rem;" title="@order.BackofficeName">
                                             🏢 @order.BackofficeName
                                         </span>
-                                    </div>
-                                }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted" style="font-size: 0.65rem;" title="@order.AdvisorName">@order.AdvisorName</span>
+                                    }
+                                </div>
                             </div>
                         </div>
                     }
@@ -523,10 +524,14 @@
 
                 allOrders = result;
 
-                // Build advisor list from the orders
+                // Build advisor list from the orders (using effective owner)
                 advisorList = allOrders
-                    .GroupBy(o => o.IdUser)
-                    .Select(g => new AdvisorLookup { Id = g.Key, Name = g.First().AdvisorName })
+                    .Select(o => new { 
+                        Id = (o.CustodyUserId.HasValue && o.CustodyUserId > 0) ? o.CustodyUserId.Value : o.IdUser, 
+                        Name = (o.CustodyUserId.HasValue && o.CustodyUserId > 0 && !string.IsNullOrEmpty(o.BackofficeName)) ? $"🏢 {o.BackofficeName}" : o.AdvisorName 
+                    })
+                    .GroupBy(x => x.Id)
+                    .Select(g => new AdvisorLookup { Id = g.Key, Name = g.First().Name })
                     .OrderBy(a => a.Name)
                     .ToList();
 
@@ -548,7 +553,9 @@
         filteredOrders = allOrders;
         if (selectedAdvisorId > 0)
         {
-            filteredOrders = filteredOrders.Where(o => o.IdUser == selectedAdvisorId).ToList();
+            filteredOrders = filteredOrders.Where(o => 
+                (o.CustodyUserId.HasValue && o.CustodyUserId > 0 ? o.CustodyUserId.Value : o.IdUser) == selectedAdvisorId
+            ).ToList();
         }
         else
         {
