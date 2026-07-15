@@ -213,16 +213,17 @@ public class SupervisorRepository : ISupervisorRepository
         return stats;
     }
 
-    public async Task<bool> BulkTransferToBackofficeAsync(
+    public async Task<CRM.ApiHub.Domain.DTOs.BulkTransferResultDto> BulkTransferToBackofficeAsync(
         long[] orderIds,
         long supervisorId,
         long backofficeUserId,
         string? comment,
         CancellationToken ct = default)
     {
+        var result = new CRM.ApiHub.Domain.DTOs.BulkTransferResultDto();
         if (orderIds == null || orderIds.Length == 0)
         {
-            return false;
+            return result;
         }
 
         using var connection = _connectionFactory.CreateConnection();
@@ -231,20 +232,20 @@ public class SupervisorRepository : ISupervisorRepository
             connection.Open();
         }
 
-        using var transaction = connection.BeginTransaction();
-        try
+        var batchId = Guid.NewGuid();
+
+        foreach (var orderId in orderIds)
         {
-            // 1. Establecer el ID de usuario actor en la sesión para evitar errores del trigger de auditoría de estado
-            await connection.ExecuteAsync(
-                "SELECT set_config('app.current_user_id', @SupervisorIdStr, true);",
-                new { SupervisorIdStr = supervisorId.ToString() },
-                transaction: transaction
-            );
-
-            var batchId = Guid.NewGuid();
-
-            foreach (var orderId in orderIds)
+            using var transaction = connection.BeginTransaction();
+            try
             {
+                // 1. Establecer el ID de usuario actor en la sesión
+                await connection.ExecuteAsync(
+                    "SELECT set_config('app.current_user_id', @SupervisorIdStr, true);",
+                    new { SupervisorIdStr = supervisorId.ToString() },
+                    transaction: transaction
+                );
+
                 // 2. Actualizar custodio y estado a Pendiente Backoffice (id_status = 3)
                 const string updateSql = @"
                     UPDATE sales_service.sales_order 
@@ -253,35 +254,47 @@ public class SupervisorRepository : ISupervisorRepository
                         last_update = NOW()
                     WHERE id_order = @OrderId;";
 
-                await connection.ExecuteAsync(
+                int rowsAffected = await connection.ExecuteAsync(
                     new CommandDefinition(updateSql, new { BackofficeUserId = backofficeUserId, OrderId = orderId }, transaction: transaction, cancellationToken: ct)
                 );
 
-                // 3. Registrar en custody_log con batch_id
-                const string insertLogSql = @"
-                    INSERT INTO sales_service.sales_order_custody_log (
-                        id_order, log_date, from_user_id, to_user_id, 
-                        from_role, to_role, transfer_type, id_status_at, 
-                        comment, is_bulk, batch_id, register
-                    )
-                    VALUES (
-                        @OrderId, CURRENT_DATE, @SupervisorId, @BackofficeUserId,
-                        'SUPERVISOR', 'BACKOFFICE', 'BULK_TO_BACKOFFICE', 3,
-                        @Comment, true, @BatchId, NOW()
-                    );";
+                if (rowsAffected > 0)
+                {
+                    // 3. Registrar en custody_log con batch_id
+                    const string insertLogSql = @"
+                        INSERT INTO sales_service.sales_order_custody_log (
+                            id_order, log_date, from_user_id, to_user_id, 
+                            from_role, to_role, transfer_type, id_status_at, 
+                            comment, is_bulk, batch_id, register
+                        )
+                        VALUES (
+                            @OrderId, CURRENT_DATE, @SupervisorId, @BackofficeUserId,
+                            'SUPERVISOR', 'BACKOFFICE', 'BULK_TO_BACKOFFICE', 3,
+                            @Comment, true, @BatchId, NOW()
+                        );";
 
-                await connection.ExecuteAsync(
-                    new CommandDefinition(insertLogSql, new { OrderId = orderId, SupervisorId = supervisorId, BackofficeUserId = backofficeUserId, Comment = comment ?? "Envío masivo al BAC", BatchId = batchId }, transaction: transaction, cancellationToken: ct)
-                );
+                    await connection.ExecuteAsync(
+                        new CommandDefinition(insertLogSql, new { OrderId = orderId, SupervisorId = supervisorId, BackofficeUserId = backofficeUserId, Comment = comment ?? "Envío masivo al BAC", BatchId = batchId }, transaction: transaction, cancellationToken: ct)
+                    );
+
+                    transaction.Commit();
+                    result.SuccessfulCount++;
+                }
+                else
+                {
+                    transaction.Rollback();
+                    result.FailedCount++;
+                    result.FailedOrderIds.Add(orderId);
+                }
             }
+            catch
+            {
+                transaction.Rollback();
+                result.FailedCount++;
+                result.FailedOrderIds.Add(orderId);
+            }
+        }
 
-            transaction.Commit();
-            return true;
-        }
-        catch
-        {
-            transaction.Rollback();
-            throw;
-        }
+        return result;
     }
 }

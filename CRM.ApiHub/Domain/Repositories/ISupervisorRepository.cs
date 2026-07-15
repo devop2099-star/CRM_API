@@ -24,7 +24,7 @@ public interface ISupervisorRepository
         DateTime dateTo,
         CancellationToken ct = default);
 
-    Task<bool> BulkTransferToBackofficeAsync(
+    Task<CRM.ApiHub.Domain.DTOs.BulkTransferResultDto> BulkTransferToBackofficeAsync(
         long[] orderIds,
         long supervisorId,
         long backofficeUserId,

@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using CRM.ApiHub.Domain.Repositories;
+using CRM.ApiHub.Domain.DTOs;
 
 namespace CRM.ApiHub.Application.UseCases.Supervisor;
 
@@ -13,7 +14,7 @@ public class BulkTransferToBackofficeUseCase
         _repository = repository;
     }
 
-    public async Task<bool> ExecuteAsync(
+    public async Task<BulkTransferResultDto> ExecuteAsync(
         long[] orderIds,
         long supervisorId,
         long backofficeUserId,
