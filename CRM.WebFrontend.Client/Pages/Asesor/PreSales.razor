@@ -92,11 +92,11 @@
                                             </small>
                                         </td>
                                         <td class="px-4 py-3">
-                                            @if (preSale.CoverageStatus == "SI")
+                                            @if (IsCovered(preSale.CoverageStatus))
                                             {
                                                 <span class="badge bg-success bg-opacity-10 text-success">Con Cobertura</span>
                                             }
-                                            else if (preSale.CoverageStatus == "NO")
+                                            else if (IsNoCoverage(preSale.CoverageStatus))
                                             {
                                                 <span class="badge bg-danger bg-opacity-10 text-danger">Sin Cobertura</span>
                                             }
@@ -386,13 +386,17 @@
 
         if (!string.IsNullOrWhiteSpace(filterCoverage))
         {
-            if (filterCoverage == "PENDIENTE")
+            if (filterCoverage == "SI")
             {
-                temp = temp.Where(p => string.IsNullOrWhiteSpace(p.CoverageStatus) || p.CoverageStatus.Trim().Equals("PENDIENTE", StringComparison.OrdinalIgnoreCase));
+                temp = temp.Where(p => IsCovered(p.CoverageStatus));
             }
-            else
+            else if (filterCoverage == "NO")
             {
-                temp = temp.Where(p => !string.IsNullOrWhiteSpace(p.CoverageStatus) && p.CoverageStatus.Trim().Equals(filterCoverage, StringComparison.OrdinalIgnoreCase));
+                temp = temp.Where(p => IsNoCoverage(p.CoverageStatus));
+            }
+            else if (filterCoverage == "PENDIENTE")
+            {
+                temp = temp.Where(p => !IsCovered(p.CoverageStatus) && !IsNoCoverage(p.CoverageStatus));
             }
         }
 
@@ -553,5 +557,22 @@
         {
             isSaving = false;
         }
+    }
+
+    private bool IsCovered(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return false;
+        var s = status.Trim();
+        return string.Equals(s, "SI", StringComparison.OrdinalIgnoreCase) || 
+               string.Equals(s, "COVERED", StringComparison.OrdinalIgnoreCase) || 
+               string.Equals(s, "AVAILABLE", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsNoCoverage(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status)) return false;
+        var s = status.Trim();
+        return string.Equals(s, "NO", StringComparison.OrdinalIgnoreCase) || 
+               string.Equals(s, "NO_COVERAGE", StringComparison.OrdinalIgnoreCase);
     }
 }

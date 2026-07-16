@@ -42,4 +42,32 @@ public class MockBackofficeService : IBackofficeService
         await Task.Delay(400);
         Console.WriteLine($"Orden {idOrder} marcada como: {decision}. Obs: {observation}");
     }
+
+    public async Task<IEnumerable<BackofficeIncidentDto>> GetIncidentsAsync(string? role = "BACKOFFICE", string? status = "OPEN")
+    {
+        await Task.Delay(100);
+        return new List<BackofficeIncidentDto>
+        {
+            new(501, 101, 1, "Incidencia de Buró", "Detalle de Buró", "OPEN", "BACKOFFICE", DateTime.UtcNow.AddHours(2), DateTime.UtcNow)
+        };
+    }
+
+    public async Task<IEnumerable<KbArticleSuggestionDto>> GetKbSuggestionsAsync(long idIncident)
+    {
+        await Task.Delay(100);
+        return new List<KbArticleSuggestionDto>
+        {
+            new(1, "Cómo validar Buró", "Guía paso a paso para validación manual de buró.", "como-validar-buro")
+        };
+    }
+
+    public async Task AddIncidentResponseAsync(long idIncident, string responseText, string responseType, long respondedBy)
+    {
+        await Task.Delay(100);
+    }
+
+    public async Task ResolveIncidentAsync(long idIncident, string notes, long resolvedBy)
+    {
+        await Task.Delay(100);
+    }
 }

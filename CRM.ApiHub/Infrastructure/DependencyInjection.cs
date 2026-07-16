@@ -84,6 +84,7 @@ public static class DependencyInjection
 
         // Document Use Cases
         services.AddScoped<GetDocumentsByOrderUseCase>();
+        services.AddScoped<GetDocumentByIdUseCase>();
         services.AddScoped<UploadOrderDocumentUseCase>();
         services.AddScoped<VerifyOrderDocumentUseCase>();
 

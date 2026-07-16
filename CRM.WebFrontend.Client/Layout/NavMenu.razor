@@ -1,65 +1,46 @@
-<ul class="nav flex-column nav-pills" aria-orientation="vertical">
+<div class="d-flex flex-column gap-1">
     <AuthorizeView Roles="ASESOR">
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/asesor" Match="NavLinkMatch.All">
-                <span class="me-3">🏠</span> Dashboard Asesor
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/asesor/orders/new">
-                <span class="me-3">📝</span> Nueva Orden
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/asesor/preventas">
-                <span class="me-3">📞</span> Mis Pre-Ventas
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/asesor/orders" Match="NavLinkMatch.All">
-                <span class="me-3">💰</span> Mis Ventas
-            </NavLink>
-        </li>
+        <NavLink class="nav-link" href="/asesor" Match="NavLinkMatch.All">
+            <span class="me-3" style="font-size: 1.1rem;">🏠</span> Dashboard Asesor
+        </NavLink>
+        <NavLink class="nav-link" href="/asesor/orders/new">
+            <span class="me-3" style="font-size: 1.1rem;">📝</span> Nueva Orden
+        </NavLink>
+        <NavLink class="nav-link" href="/asesor/preventas">
+            <span class="me-3" style="font-size: 1.1rem;">📞</span> Mis Pre-Ventas
+        </NavLink>
+        <NavLink class="nav-link" href="/asesor/orders" Match="NavLinkMatch.All">
+            <span class="me-3" style="font-size: 1.1rem;">💰</span> Mis Ventas
+        </NavLink>
     </AuthorizeView>
 
     <AuthorizeView Roles="SUPERVISOR">
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/supervisor" Match="NavLinkMatch.All">
-                <span class="me-3">📊</span> Dashboard Supervisor
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/supervisor/dashboard">
-                <span class="me-3">📋</span> Kanban Ventas
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/supervisor/equipo">
-                <span class="me-3">👥</span> Rendimiento de Equipo
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/supervisor/alertas">
-                <span class="me-3">⚠️</span> Alertas Activas
-            </NavLink>
-        </li>
+        <NavLink class="nav-link" href="/supervisor" Match="NavLinkMatch.All">
+            <span class="me-3" style="font-size: 1.1rem;">📊</span> Dashboard Supervisor
+        </NavLink>
+        <NavLink class="nav-link" href="/supervisor/dashboard">
+            <span class="me-3" style="font-size: 1.1rem;">📋</span> Kanban Ventas
+        </NavLink>
+        <NavLink class="nav-link" href="/supervisor/equipo">
+            <span class="me-3" style="font-size: 1.1rem;">👥</span> Rendimiento de Equipo
+        </NavLink>
+        <NavLink class="nav-link" href="/supervisor/alertas">
+            <span class="me-3" style="font-size: 1.1rem;">⚠️</span> Alertas Activas
+        </NavLink>
     </AuthorizeView>
     
     <AuthorizeView Roles="BACKOFFICE">
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/backoffice/dashboard" Match="NavLinkMatch.All">
-                <span class="me-3">⚙️</span> Dashboard Backoffice
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/backoffice/equipo">
-                <span class="me-3">👥</span> Rendimiento de Equipo
-            </NavLink>
-        </li>
-        <li class="nav-item">
-            <NavLink class="nav-link text-white mx-3 mb-2" href="/backoffice/alertas">
-                <span class="me-3">⚠️</span> Alertas Activas
-            </NavLink>
-        </li>
+        <NavLink class="nav-link" href="/backoffice/dashboard" Match="NavLinkMatch.All">
+            <span class="me-3" style="font-size: 1.1rem;">⚙️</span> Dashboard Backoffice
+        </NavLink>
+        <NavLink class="nav-link" href="/backoffice/equipo">
+            <span class="me-3" style="font-size: 1.1rem;">👥</span> Rendimiento de Equipo
+        </NavLink>
+        <NavLink class="nav-link" href="/backoffice/alertas">
+            <span class="me-3" style="font-size: 1.1rem;">⚠️</span> Alertas Activas
+        </NavLink>
+        <NavLink class="nav-link" href="/backoffice/incidents">
+            <span class="me-3" style="font-size: 1.1rem;">🚨</span> Incidencias
+        </NavLink>
     </AuthorizeView>
-</ul>
+</div>

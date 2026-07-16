@@ -17,15 +17,18 @@ public class DocumentController : ControllerBase
     private readonly GetDocumentsByOrderUseCase _getDocumentsByOrderUseCase;
     private readonly UploadOrderDocumentUseCase _uploadOrderDocumentUseCase;
     private readonly VerifyOrderDocumentUseCase _verifyOrderDocumentUseCase;
+    private readonly GetDocumentByIdUseCase _getDocumentByIdUseCase;
 
     public DocumentController(
         GetDocumentsByOrderUseCase getDocumentsByOrderUseCase,
         UploadOrderDocumentUseCase uploadOrderDocumentUseCase,
-        VerifyOrderDocumentUseCase verifyOrderDocumentUseCase)
+        VerifyOrderDocumentUseCase verifyOrderDocumentUseCase,
+        GetDocumentByIdUseCase getDocumentByIdUseCase)
     {
         _getDocumentsByOrderUseCase = getDocumentsByOrderUseCase;
         _uploadOrderDocumentUseCase = uploadOrderDocumentUseCase;
         _verifyOrderDocumentUseCase = verifyOrderDocumentUseCase;
+        _getDocumentByIdUseCase = getDocumentByIdUseCase;
     }
 
     [HttpGet("api/orders/{id:long}/documents")]
@@ -127,6 +130,37 @@ public class DocumentController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Error al actualizar la verificación del documento.", details = ex.Message });
+        }
+    }
+
+    [HttpGet("api/documents/{id:long}/download")]
+    public async Task<IActionResult> DownloadDocument(long id, CancellationToken ct)
+    {
+        try
+        {
+            var doc = await _getDocumentByIdUseCase.ExecuteAsync(id, ct);
+            if (doc == null)
+            {
+                return NotFound(new { message = "Documento no encontrado." });
+            }
+
+            if (doc.FilePath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                doc.FilePath.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return Redirect(doc.FilePath);
+            }
+
+            if (!System.IO.File.Exists(doc.FilePath))
+            {
+                return NotFound(new { message = "El archivo físico no existe en el servidor." });
+            }
+
+            var mimeType = doc.MimeType ?? "application/octet-stream";
+            return PhysicalFile(doc.FilePath, mimeType, System.IO.Path.GetFileName(doc.FilePath));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al descargar el documento.", details = ex.Message });
         }
     }
 }
