@@ -43,7 +43,7 @@ public class BackofficeService : IBackofficeService
     {
         try
         {
-            // 1. Get documents for this order
+            // 1. Get documents for this order (fetched from 'sales_service.order_document' database table)
             var docs = await _httpClient.GetFromJsonAsync<List<OrderDocumentDto>>($"api/orders/{idOrder}/documents");
             var dniDoc = docs?.FirstOrDefault(d => d.DocumentType.Equals("DNI", StringComparison.OrdinalIgnoreCase) || d.DocumentType.Equals("IDENTIFICACION", StringComparison.OrdinalIgnoreCase));
             if (dniDoc == null) return null;
