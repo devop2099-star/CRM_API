@@ -3,6 +3,8 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using CRM.ApiHub.Application.DTOs;
 using CRM.ApiHub.Application.UseCases.Auth;
+using CRM.ApiHub.Application.Interfaces;
+using CRM.ApiHub.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -114,5 +116,22 @@ public class AuthController : ControllerBase
     private string GetUserAgent()
     {
         return Request.Headers["User-Agent"].ToString();
+    }
+
+    [Authorize]
+    [HttpGet("check-permission")]
+    public async Task<IActionResult> CheckPermission(
+        [FromQuery] string permissionKey, 
+        [FromQuery] long statusId, 
+        [FromServices] IPermissionService permissionService)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+        {
+            return Unauthorized(new { message = "Usuario no autorizado." });
+        }
+
+        bool hasPermission = await permissionService.CanUserActionAsync(userId, permissionKey, (int)statusId);
+        return Ok(new { hasPermission });
     }
 }
