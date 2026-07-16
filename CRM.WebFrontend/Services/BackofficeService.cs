@@ -144,7 +144,7 @@ public class BackofficeService : IBackofficeService
         }
     }
 
-    public async Task<IEnumerable<BackofficeIncidentDto>> GetIncidentsAsync(string? role = "BAC", string? status = "OPEN")
+    public async Task<IEnumerable<BackofficeIncidentDto>> GetIncidentsAsync(string? role = "BACKOFFICE", string? status = "OPEN")
     {
         try
         {

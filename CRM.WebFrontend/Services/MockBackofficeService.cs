@@ -43,12 +43,12 @@ public class MockBackofficeService : IBackofficeService
         Console.WriteLine($"Orden {idOrder} marcada como: {decision}. Obs: {observation}");
     }
 
-    public async Task<IEnumerable<BackofficeIncidentDto>> GetIncidentsAsync(string? role = "BAC", string? status = "OPEN")
+    public async Task<IEnumerable<BackofficeIncidentDto>> GetIncidentsAsync(string? role = "BACKOFFICE", string? status = "OPEN")
     {
         await Task.Delay(100);
         return new List<BackofficeIncidentDto>
         {
-            new(501, 101, 1, "Incidencia de Buró", "Detalle de Buró", "OPEN", "BAC", DateTime.UtcNow.AddHours(2), DateTime.UtcNow)
+            new(501, 101, 1, "Incidencia de Buró", "Detalle de Buró", "OPEN", "BACKOFFICE", DateTime.UtcNow.AddHours(2), DateTime.UtcNow)
         };
     }
 

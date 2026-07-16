@@ -184,7 +184,7 @@
     <div class="d-flex align-items-center mb-4">
         <h3 class="fw-bold mb-0" style="color: var(--accent); letter-spacing: -0.5px;">BackOffice</h3>
         <span class="mx-3 text-muted">/</span>
-        <span class="text-muted fs-5">Gestión de Incidencias BAC</span>
+        <span class="text-muted fs-5">Gestión de Incidencias</span>
     </div>
 
     <!-- Filtros superiores -->
@@ -197,7 +197,7 @@
         <div class="d-flex align-items-center gap-2">
             <span class="text-muted" style="font-size: 0.85rem;">Rol Asignado:</span>
             <select class="form-select form-select-sm w-auto" @bind="_filterRole">
-                <option value="BAC">BAC (BackOffice)</option>
+                <option value="BACKOFFICE">BackOffice</option>
                 <option value="ASESOR">ASESOR</option>
                 <option value="SUPERVISOR">SUPERVISOR</option>
                 <option value="">Todos</option>
@@ -419,7 +419,7 @@
     
     private bool _isLoading = true;
     private string _filterStatus = "OPEN";
-    private string _filterRole = "BAC";
+    private string _filterRole = "BACKOFFICE";
     
     private string _responseText = "";
     private string _resolveNotes = "";
@@ -504,7 +504,7 @@
                 await BackofficeService.AddIncidentResponseAsync(
                     _selectedIncident.IdOrderIncident,
                     _responseText,
-                    "BAC_COMMENT",
+                    "BACKOFFICE_COMMENT",
                     _currentUserId
                 );
                 
