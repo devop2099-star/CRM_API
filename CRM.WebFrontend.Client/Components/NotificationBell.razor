@@ -6,9 +6,10 @@
 @inject NotificationService NotifService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavManager
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<div class="notification-bell-wrapper position-relative">
+<div class="notification-bell-wrapper position-relative" tabindex="-1" @onfocusout="OnFocusOut">
     <button class="btn btn-light p-2 rounded-circle border-0 d-flex align-items-center justify-content-center notification-bell-btn @(isOpen ? "active" : "")"
             style="width: 38px; height: 38px;"
             title="Notificaciones"
@@ -23,7 +24,6 @@
 
     @if (isOpen)
     {
-        <div class="notification-backdrop" @onclick="ClosePanel"></div>
         <div class="notification-panel shadow-lg rounded-4 border">
             <!-- Header -->
             <div class="notification-panel-header d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
@@ -41,7 +41,7 @@
 
             <!-- Body -->
             <div class="notification-panel-body">
-                @if (isLoading)
+                @if (isLoading && notifications.Count == 0)
                 {
                     <div class="text-center py-5">
                         <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
@@ -52,7 +52,7 @@
                 {
                     <div class="text-center py-5">
                         <span style="font-size: 2.5rem; opacity: 0.3;">🔔</span>
-                        <p class="text-muted small mt-2 mb-0">Sin notificaciones nuevas</p>
+                        <p class="text-muted small mt-2 mb-0">Sin notificaciones</p>
                     </div>
                 }
                 else
@@ -123,13 +123,6 @@
         100% { transform: scale(1); }
     }
 
-    .notification-backdrop {
-        position: fixed;
-        inset: 0;
-        z-index: 1040;
-        background: transparent;
-    }
-
     .notification-panel {
         position: absolute;
         top: calc(100% + 8px);
@@ -171,6 +164,14 @@
     .notification-item.unread:hover {
         background-color: #e4eefb;
     }
+    .notification-item.read {
+        background-color: #ffffff;
+        opacity: 0.75;
+    }
+    .notification-item.read:hover {
+        background-color: #f8fafc;
+        opacity: 0.95;
+    }
     .notification-item:last-child {
         border-bottom: none !important;
     }
@@ -189,6 +190,7 @@
     private bool isOpen = false;
     private bool isLoading = false;
     private long currentUserId = 0;
+    private string userRole = string.Empty;
     private string? accessToken;
     private Timer? pollingTimer;
 
@@ -202,6 +204,10 @@
                     ?? user.FindFirst("sub")?.Value;
         currentUserId = long.TryParse(idStr, out var id) ? id : 0;
         accessToken = user.FindFirst("access_token")?.Value;
+
+        userRole = user.FindFirst(ClaimTypes.Role)?.Value 
+                   ?? user.FindFirst("role")?.Value 
+                   ?? "";
 
         if (currentUserId > 0)
         {
@@ -227,7 +233,10 @@
                 var authState = await AuthStateProvider.GetAuthenticationStateAsync();
                 accessToken = authState.User.FindFirst("access_token")?.Value;
             }
-            notifications = await NotifService.GetUnreadAsync(currentUserId, accessToken);
+
+            var serverNotifications = await NotifService.GetRecentAsync(currentUserId, accessToken);
+
+            notifications = serverNotifications.ToList();
             unreadCount = notifications.Count(n => !n.IsRead);
         }
         catch (Exception ex)
@@ -239,11 +248,22 @@
     private void TogglePanel()
     {
         isOpen = !isOpen;
+        if (isOpen)
+        {
+            _ = RefreshNotificationsAsync();
+        }
     }
 
-    private void ClosePanel()
+    private async Task OnFocusOut(FocusEventArgs e)
     {
-        isOpen = false;
+        // Retardo para permitir que se registre un clic interno (OnNotificationClick)
+        // antes de cerrar el panel y removerlo del DOM
+        await Task.Delay(150);
+        if (isOpen)
+        {
+            isOpen = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task OnNotificationClick(NotificationDto notif)
@@ -257,7 +277,6 @@
 
         isOpen = false;
 
-        // Navigate based on module + actionData
         var route = ResolveNavigationRoute(notif);
         if (!string.IsNullOrEmpty(route))
         {
@@ -268,7 +287,10 @@
     private async Task MarkAllRead()
     {
         await NotifService.MarkAllAsReadAsync(currentUserId, accessToken);
-        foreach (var n in notifications) n.IsRead = true;
+        foreach (var n in notifications)
+        {
+            n.IsRead = true;
+        }
         unreadCount = 0;
     }
 
@@ -277,14 +299,31 @@
         var module = notif.Module?.ToUpperInvariant() ?? "";
         var actionData = notif.ActionData ?? "";
 
+        // Si la notificación es de una incidencia, enrutar según el rol
+        if (module.Contains("INCIDENT") || module.Contains("INCIDENCIA"))
+        {
+            if (userRole.Equals("SUPERVISOR", StringComparison.OrdinalIgnoreCase))
+            {
+                return "/supervisor/dashboard";
+            }
+            else if (userRole.Equals("ASESOR", StringComparison.OrdinalIgnoreCase))
+            {
+                return !string.IsNullOrEmpty(actionData) ? $"/asesor/orders/{actionData}" : "/asesor/orders";
+            }
+            
+            // Default para Backoffice o cualquier otro rol
+            return "/backoffice/incidents";
+        }
+
         return module switch
         {
-            "ORDER" or "SALES" => !string.IsNullOrEmpty(actionData)
-                ? $"/asesor/orders/{actionData}"
-                : "/asesor/orders",
+            "ORDER" or "SALES" => userRole.Equals("SUPERVISOR", StringComparison.OrdinalIgnoreCase)
+                ? (!string.IsNullOrEmpty(actionData) ? $"/supervisor/orders/{actionData}" : "/supervisor/dashboard")
+                : userRole.Equals("BACKOFFICE", StringComparison.OrdinalIgnoreCase)
+                    ? "/backoffice/dashboard"
+                    : (!string.IsNullOrEmpty(actionData) ? $"/asesor/orders/{actionData}" : "/asesor/orders"),
             "BACKOFFICE" or "BAC" => "/backoffice/dashboard",
             "SUPERVISOR" => "/supervisor/dashboard",
-            "INCIDENT" or "INCIDENCIA" => "/incidents",
             "TRANSFER" or "TRANSFERENCIA" => "/supervisor/dashboard",
             "AUDIT" or "AUDITORIA" => "/backoffice/dashboard",
             _ => null

@@ -25,15 +25,16 @@ public class NotificationRepository : INotificationRepository
         await connection.ExecuteAsync(sql, new { IdUser = userId, Title = title, Message = message, Module = module, ActionData = actionData });
     }
 
-    public async Task<IEnumerable<UserAlert>> GetUnreadAsync(long userId)
+    public async Task<IEnumerable<UserAlert>> GetRecentAsync(long userId, int limit = 50)
     {
         using var connection = _connectionFactory.CreateConnection();
         const string sql = @"
             SELECT * FROM notification_service.user_alerts 
-            WHERE id_user = @UserId AND is_read = false 
-            ORDER BY created_at DESC;";
+            WHERE id_user = @UserId 
+            ORDER BY created_at DESC 
+            LIMIT @Limit;";
 
-        return await connection.QueryAsync<UserAlert>(sql, new { UserId = userId });
+        return await connection.QueryAsync<UserAlert>(sql, new { UserId = userId, Limit = limit });
     }
 
     public async Task MarkReadAsync(int idAlert)

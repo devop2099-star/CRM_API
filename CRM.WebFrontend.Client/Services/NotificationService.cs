@@ -23,12 +23,12 @@ public class NotificationService
         return client;
     }
 
-    public async Task<List<NotificationDto>> GetUnreadAsync(long userId, string? token = null)
+    public async Task<List<NotificationDto>> GetRecentAsync(long userId, string? token = null)
     {
         try
         {
             var client = CreateAuthenticatedClient(token);
-            var result = await client.GetFromJsonAsync<List<NotificationDto>>($"/api/notifications?userId={userId}");
+            var result = await client.GetFromJsonAsync<List<NotificationDto>>($"/api/notifications?userId={userId}&limit=50");
             return result ?? new List<NotificationDto>();
         }
         catch (Exception ex)
