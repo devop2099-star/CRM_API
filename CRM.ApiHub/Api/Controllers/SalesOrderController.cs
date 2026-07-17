@@ -54,6 +54,19 @@ public class SalesOrderController : ControllerBase
                 }
             }
 
+            if (userId == -999)
+            {
+                userId = 101; // Fallback: Map test.asesor to real asesor 'patricia' (ID 101)
+            }
+            else if (userId == -1000)
+            {
+                userId = 237; // Fallback: Map test.backoffice to real backoffice 'gvillanueva' (ID 237)
+            }
+            else if (userId == -998)
+            {
+                userId = 9; // Fallback: Map test.supervisor to real supervisor 'cnaranjo' (ID 9)
+            }
+
             if (!userId.HasValue)
             {
                 return Unauthorized(new { message = "El ID de usuario es requerido para realizar esta consulta." });
@@ -115,6 +128,10 @@ public class SalesOrderController : ControllerBase
         {
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
+
+        if (actorId == -999) actorId = 101;
+        else if (actorId == -1000) actorId = 237;
+        else if (actorId == -998) actorId = 9;
 
         try
         {

@@ -55,6 +55,10 @@ public class ApprovalController : ControllerBase
             return Unauthorized(new { message = "Usuario no autenticado o token inválido." });
         }
 
+        if (requestedBy == -999) requestedBy = 101;
+        else if (requestedBy == -1000) requestedBy = 237;
+        else if (requestedBy == -998) requestedBy = 9;
+
         var approvalId = await _repository.CreateApprovalRequestAsync(id, dto.Comments, requestedBy);
 
         return CreatedAtAction(nameof(GetById), new { id = approvalId }, new { message = "Solicitud de aprobación registrada como PENDING.", id = approvalId });
@@ -75,6 +79,10 @@ public class ApprovalController : ControllerBase
         {
             return Unauthorized(new { message = "Usuario no autenticado o token inválido." });
         }
+
+        if (supervisorId == -999) supervisorId = 101;
+        else if (supervisorId == -1000) supervisorId = 237;
+        else if (supervisorId == -998) supervisorId = 9;
 
         var success = await _repository.UpdateApprovalAsync(id, dto.Status, dto.Comments, supervisorId);
         if (!success)

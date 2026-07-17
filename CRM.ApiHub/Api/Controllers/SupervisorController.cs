@@ -43,6 +43,10 @@ public class SupervisorController : ControllerBase
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
 
+        if (supervisorId == -998) supervisorId = 9;
+        else if (supervisorId == -999) supervisorId = 101;
+        else if (supervisorId == -1000) supervisorId = 237;
+
         try
         {
             var orders = await _getTeamOrdersUseCase.ExecuteAsync(supervisorId, userId, statusId, campaignId, dateFrom, dateTo, ct);
@@ -65,6 +69,10 @@ public class SupervisorController : ControllerBase
         {
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
+
+        if (supervisorId == -998) supervisorId = 9;
+        else if (supervisorId == -999) supervisorId = 101;
+        else if (supervisorId == -1000) supervisorId = 237;
 
         try
         {
@@ -95,6 +103,10 @@ public class SupervisorController : ControllerBase
         {
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
+
+        if (supervisorId == -998) supervisorId = 9;
+        else if (supervisorId == -999) supervisorId = 101;
+        else if (supervisorId == -1000) supervisorId = 237;
 
         try
         {

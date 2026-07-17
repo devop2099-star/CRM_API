@@ -16,26 +16,29 @@
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
     
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
     --radius-pill: 50px;
 }
 
-/* Global Reset */
+/* Global Reset & Sizing Adjustments (Compact Mode) */
 html, body {
     font-family: var(--font-main);
     background-color: var(--bg-app);
     color: var(--text-main);
     letter-spacing: -0.015em;
     -webkit-font-smoothing: antialiased;
+    font-size: 0.825rem; /* Compact size globally (approx 13px) */
+    line-height: 1.4;
+    overflow-x: hidden;
 }
 
 /* Scrollbar Customization */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
 }
 ::-webkit-scrollbar-track {
     background: transparent;
@@ -48,70 +51,118 @@ html, body {
     background: #a1a1aa;
 }
 
-/* Typography & Headings */
-h1, h2, h3, h4, h5, h6 {
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    color: var(--text-main);
-}
+/* Compact Typography */
+h1, .h1 { font-size: 1.4rem !important; font-weight: 700; margin-bottom: 0.25rem; }
+h2, .h2 { font-size: 1.2rem !important; font-weight: 600; margin-bottom: 0.25rem; }
+h3, .h3 { font-size: 1.05rem !important; font-weight: 600; }
+h4, .h4 { font-size: 0.95rem !important; font-weight: 600; }
+p, .lead { font-size: 0.8rem; color: var(--text-muted); }
 
-/* Premium Floating Sidebar Layout */
+/* Layout Structure */
 #wrapper {
     display: flex;
     background-color: var(--bg-app);
     padding: 12px;
-    gap: 16px;
+    gap: 12px;
     height: 100vh;
+    width: 100%;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
+/* Sidebar: Narrow, Pill-shaped Capsule (Vampire / Midnight theme) */
 #sidebar-wrapper {
-    background-color: var(--sidebar-bg);
-    color: var(--sidebar-color);
-    border-radius: var(--radius-xl);
-    width: 260px;
+    background-color: var(--primary); /* Midnight */
+    color: #ffffff;
+    border-radius: 100px; /* Perfect pill capsule */
+    width: 60px; /* Slim and elegant */
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    padding: 24px 16px;
+    padding: 22px 0 16px 0;
     box-shadow: var(--shadow-lg);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    align-items: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 #sidebar-wrapper .sidebar-heading {
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    padding-bottom: 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+    border: none;
+    padding: 0;
 }
 
-/* Nav Link Redesign */
+/* Navigation Links - Centered Circular Buttons */
 #sidebar-wrapper .nav-link {
     display: flex;
     align-items: center;
-    padding: 12px 16px;
-    color: rgba(255, 255, 255, 0.65);
-    border-radius: var(--radius-md);
-    font-size: 0.9rem;
-    font-weight: 500;
-    margin-bottom: 6px;
-    transition: all 0.2s ease;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%; /* Perfect circle */
+    color: rgba(255, 255, 255, 0.45); /* Muted inactive state */
+    margin: 3px auto;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
+    position: relative;
 }
 
 #sidebar-wrapper .nav-link:hover {
     color: #ffffff;
-    background-color: rgba(255, 255, 255, 0.08);
-    transform: translateX(4px);
+    background-color: rgba(255, 255, 255, 0.07);
 }
 
 #sidebar-wrapper .nav-link.active {
-    color: #09090b !important;
-    background-color: #ffffff !important;
-    font-weight: 600;
-    box-shadow: var(--shadow-sm);
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: none;
+}
+
+/* Micro-animation when clicked (feedback) */
+#sidebar-wrapper .nav-link:active {
+    transform: scale(0.90);
+}
+
+#sidebar-wrapper .nav-link.text-danger-hover:hover {
+    color: #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.08) !important;
+}
+
+/* Floating Logo Toggle Button */
+#sidebar-logo-container {
+    position: absolute;
+    top: 24px;
+    left: 23px;
+    width: 38px;
+    height: 38px;
+    z-index: 1050;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#sidebar-logo-container:hover {
+    transform: scale(1.05);
+}
+
+#sidebar-logo-container:active {
+    transform: scale(0.95);
+}
+
+/* Hide navigation label text to keep it ultra-minimalist */
+#sidebar-wrapper .nav-link-text {
+    display: none;
+}
+
+/* Sidebar Collapse (Smooth Hiding without page shifts) */
+#wrapper.collapsed #sidebar-wrapper {
+    width: 0;
+    padding: 22px 0 16px 0;
+    margin-right: -12px; /* Offset the flex gap */
+    opacity: 0;
+    pointer-events: none;
+    border-color: transparent;
 }
 
 /* Page content section */
@@ -124,78 +175,83 @@ h1, h2, h3, h4, h5, h6 {
     overflow: hidden;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-color);
+    min-width: 0;
 }
 
-/* Header / Navbar Customization */
+/* Header / Navbar Customization - Compact height */
 .custom-header {
-    height: 70px;
+    height: 52px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 32px;
+    padding: 0 20px;
     border-bottom: 1px solid var(--border-color);
     background-color: var(--surface);
 }
 
-.custom-header-title {
-    font-size: 1.15rem;
-    font-weight: 600;
+/* Compact Margins & Paddings globally */
+.container-fluid {
+    padding: 16px 20px !important;
 }
 
-/* Premium Minimalist Cards */
+/* Cards Sizing */
 .card {
     background-color: var(--surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
+    transition: all 0.2s ease;
+    margin-bottom: 12px;
 }
 
 .card:hover {
     box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
 }
 
 .card-header {
     background-color: transparent;
     border-bottom: 1px solid var(--border-color);
-    padding: 20px 24px;
+    padding: 12px 16px;
 }
 
-/* Inputs & Form Controls */
+.card-body {
+    padding: 14px 16px;
+}
+
+/* Compact Forms overrides */
 .form-control, .form-select {
-    font-size: 0.875rem;
-    padding: 10px 14px;
+    font-size: 0.8rem;
+    padding: 6px 10px;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
     background-color: #fcfcfd;
     color: var(--text-main);
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.01);
     transition: all 0.2s ease;
+    height: auto;
 }
 
 .form-control:focus, .form-select:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(9, 9, 11, 0.06);
+    box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.05);
     background-color: var(--surface);
     outline: none;
 }
 
 .form-label {
     font-weight: 500;
-    font-size: 0.85rem;
+    font-size: 0.775rem;
     color: var(--text-muted);
-    margin-bottom: 6px;
+    margin-bottom: 3px;
 }
 
-/* Premium Pill Buttons */
+/* Compact Pill Buttons */
 .btn {
-    font-size: 0.875rem;
+    font-size: 0.775rem;
     font-weight: 500;
-    padding: 10px 20px;
+    padding: 6px 12px;
     border-radius: var(--radius-pill);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.15s ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -210,8 +266,7 @@ h1, h2, h3, h4, h5, h6 {
 .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
     background-color: var(--primary-hover) !important;
     border-color: var(--primary-hover) !important;
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-0.5px);
 }
 
 .btn-secondary, .btn-light {
@@ -224,7 +279,7 @@ h1, h2, h3, h4, h5, h6 {
     background-color: #e4e4e7 !important;
     border-color: var(--border-color) !important;
     color: var(--text-main) !important;
-    transform: translateY(-1px);
+    transform: translateY(-0.5px);
 }
 
 .btn-outline-primary {
@@ -241,70 +296,52 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Badges */
 .badge {
-    padding: 6px 12px;
+    padding: 4px 8px;
     font-weight: 500;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     border-radius: var(--radius-pill);
-    letter-spacing: -0.01em;
 }
 
-/* Tables Styling */
-.table {
-    margin-bottom: 0;
-}
-
+/* Tables Styling - Ultra compact */
 .table th {
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-muted);
     border-bottom: 1px solid var(--border-color);
-    padding: 16px 24px;
+    padding: 10px 14px;
 }
 
 .table td {
-    padding: 18px 24px;
+    padding: 10px 14px;
     border-bottom: 1px solid var(--border-color);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     vertical-align: middle;
 }
 
-.table-responsive {
-    border-radius: var(--radius-lg);
-    overflow: hidden;
+/* Layout spacing tuning for small screens */
+.row {
+    --bs-gutter-x: 12px;
+    --bs-gutter-y: 12px;
 }
 
-/* Custom Navigation Menu Collapse Transition */
-#wrapper.collapsed #sidebar-wrapper {
-    width: 80px;
-    padding: 24px 8px;
+.g-4, .gy-4, .gx-4 {
+    --bs-gutter-x: 12px !important;
+    --bs-gutter-y: 12px !important;
 }
 
-#wrapper.collapsed #sidebar-wrapper .sidebar-heading {
-    justify-content: center;
-    font-size: 0;
+.mb-4 {
+    margin-bottom: 12px !important;
 }
-
-#wrapper.collapsed #sidebar-wrapper .sidebar-heading span {
-    font-size: 1.5rem !important;
-    margin-right: 0 !important;
+.mt-4 {
+    margin-top: 12px !important;
 }
-
-#wrapper.collapsed #sidebar-wrapper .nav-link {
-    justify-content: center;
-    padding: 12px;
+.py-3 {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
 }
-
-#wrapper.collapsed #sidebar-wrapper .nav-link span {
-    margin-right: 0 !important;
-    font-size: 1.2rem;
-}
-
-#wrapper.collapsed #sidebar-wrapper .nav-link::after {
-    display: none;
-}
-
-#wrapper.collapsed #sidebar-wrapper .nav-link {
-    font-size: 0;
+.py-4 {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
 }

@@ -41,6 +41,10 @@ public class AlternateProfileController : ControllerBase
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
 
+        if (createdBy == -999) createdBy = 101;
+        else if (createdBy == -1000) createdBy = 237;
+        else if (createdBy == -998) createdBy = 9;
+
         var profile = new AlternateProfile 
         {
             IdOrder = id,

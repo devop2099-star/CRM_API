@@ -1,30 +1,39 @@
 @inherits LayoutComponentBase
 
-<div id="wrapper">
+<div id="wrapper" class="@(_sidebarCollapsed ? "collapsed" : "")">
+    <!-- Floating Logo Toggle Button -->
+    <div id="sidebar-logo-container" @onclick="ToggleSidebar" class="d-flex align-items-center justify-content-center shadow-sm" title="Alternar Menú">
+        <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px; font-size: 1.25rem; user-select: none;">
+            ✦
+        </div>
+    </div>
+
     <!-- Sidebar -->
     <div id="sidebar-wrapper">
-        <div class="sidebar-heading d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
-                <span class="me-2 fs-4 text-white">✦</span>
-                <span class="fw-bold text-white fs-5 tracking-tight">NYX CRM</span>
-            </div>
-        </div>
-        <div class="flex-grow-1">
+        <!-- Spacer to make room for absolute logo -->
+        <div style="height: 48px; width: 100%; flex-shrink: 0;"></div>
+        
+        <div class="flex-grow-1 w-100">
             <NavMenu />
         </div>
         
-        <!-- Bottom Sidebar Action (like Getting Started or Profile) -->
-        <div class="pt-3 border-top border-secondary border-opacity-20 d-flex flex-column gap-2">
+        <!-- Bottom Sidebar profile avatar & settings -->
+        <div class="pt-3 border-top border-secondary border-opacity-10 w-100 d-flex flex-column align-items-center gap-2">
+            <!-- Settings Icon Link -->
+            <NavLink class="nav-link" href="/settings" title="Configuración">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </NavLink>
+            <!-- Logout Icon Link -->
+            <NavLink class="nav-link text-danger-hover" href="/logout-endpoint" title="Cerrar Sesión">
+                <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            </NavLink>
+            
             <AuthorizeView>
                 <Authorized>
-                    <div class="d-flex align-items-center p-2 rounded-3 bg-white bg-opacity-10 text-white">
-                        <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center me-2 fw-bold shadow-sm" style="width: 32px; height: 32px; font-size: 0.85rem;">
-                            @(context.User.Identity?.Name?.FirstOrDefault().ToString().ToUpper() ?? "U")
-                        </div>
-                        <div class="overflow-hidden flex-grow-1" style="line-height: 1.2;">
-                            <span class="d-block fw-semibold text-truncate" style="font-size: 0.8rem;">@context.User.Identity?.Name</span>
-                            <small class="text-white-50 text-truncate d-block" style="font-size: 0.7rem;">@string.Join(", ", context.User.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role || c.Type == "roles").Select(c => c.Value))</small>
-                        </div>
+                    <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center fw-bold shadow-sm" 
+                         style="width: 38px; height: 38px; font-size: 1rem; cursor: pointer; transition: all 0.2s ease; margin-top: 4px;"
+                         title="@($"{context.User.Identity?.Name} ({string.Join(", ", context.User.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role || c.Type == "roles").Select(c => c.Value))})")">
+                        @(context.User.Identity?.Name?.FirstOrDefault().ToString().ToUpper() ?? "U")
                     </div>
                 </Authorized>
             </AuthorizeView>
@@ -35,35 +44,44 @@
     <div id="page-content-wrapper">
         <header class="custom-header">
             <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-light p-2 border-0 shadow-none" id="menu-toggle">
-                    <span class="navbar-toggler-icon" style="width: 1.25em; height: 1.25em;"></span>
-                </button>
+                <!-- Empty spacing since menu is toggled by clicking the logo -->
             </div>
             
             <div class="d-flex align-items-center gap-3">
-                <!-- Search & Notification Placeholders -->
-                <button class="btn btn-light p-2 rounded-circle border-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;" title="Buscar">
-                    <span class="fs-6">🔍</span>
+                <!-- Search & Notification Buttons with clean SVGs -->
+                <button class="btn btn-light p-0 rounded-circle border-0 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: rgba(0,0,0,0.03); color: var(--text-secondary);" title="Buscar">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
-                <button class="btn btn-light p-2 rounded-circle border-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;" title="Notificaciones">
-                    <span class="fs-6">🔔</span>
+                <button class="btn btn-light p-0 rounded-circle border-0 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: rgba(0,0,0,0.03); color: var(--text-secondary);" title="Notificaciones">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                 </button>
                 
                 <div class="border-start h-50 mx-1 border-secondary border-opacity-10"></div>
                 
                 <AuthorizeView>
                     <Authorized>
-                        <a href="/logout-endpoint" class="btn btn-primary btn-sm px-4 rounded-pill shadow-none" style="font-size: 0.8rem; height: 36px;">Cerrar Sesión</a>
+                        <a href="/logout-endpoint" class="btn btn-primary btn-sm px-3 rounded-pill shadow-none" style="font-size: 0.775rem; height: 30px;">Cerrar Sesión</a>
                     </Authorized>
                     <NotAuthorized>
-                        <a href="/login" class="btn btn-primary btn-sm px-4 rounded-pill shadow-none" style="font-size: 0.8rem; height: 36px;">Iniciar Sesión</a>
+                        <a href="/login" class="btn btn-primary btn-sm px-3 rounded-pill shadow-none" style="font-size: 0.775rem; height: 30px;">Iniciar Sesión</a>
                     </NotAuthorized>
                 </AuthorizeView>
             </div>
         </header>
 
-        <main class="flex-grow-1 overflow-auto p-4 p-xl-5">
-            @Body
+        <main class="flex-grow-1 overflow-auto">
+            <div class="container-fluid">
+                @Body
+            </div>
         </main>
     </div>
 </div>
+
+@code {
+    private bool _sidebarCollapsed = false;
+
+    private void ToggleSidebar()
+    {
+        _sidebarCollapsed = !_sidebarCollapsed;
+    }
+}

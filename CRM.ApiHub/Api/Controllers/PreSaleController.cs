@@ -54,6 +54,9 @@ public class PreSaleController : ControllerBase
         }
 
         long targetUserId = authenticatedUserId;
+        if (targetUserId == -999) targetUserId = 101;
+        else if (targetUserId == -1000) targetUserId = 237;
+        else if (targetUserId == -998) targetUserId = 9;
         if (userId.HasValue && userId.Value != authenticatedUserId)
         {
             var userRoles = User.FindAll(ClaimTypes.Role).Select(c => c.Value)
@@ -106,6 +109,10 @@ public class PreSaleController : ControllerBase
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
 
+        if (userId == -999) userId = 101;
+        else if (userId == -1000) userId = 237;
+        else if (userId == -998) userId = 9;
+
         var result = await _repository.AddCallLogAsync(id, request.CallLog, userId);
         if (!result) return BadRequest(new { message = "No se pudo registrar el log de la llamada." });
         return Ok(new { message = "Log de llamada registrado con éxito." });
@@ -136,6 +143,10 @@ public class PreSaleController : ControllerBase
         {
             authenticatedUserId = request.UserId;
         }
+
+        if (authenticatedUserId == -999) authenticatedUserId = 101;
+        else if (authenticatedUserId == -1000) authenticatedUserId = 237;
+        else if (authenticatedUserId == -998) authenticatedUserId = 9;
 
         var result = await _repository.ConvertAsync(id, new { UserId = (int)authenticatedUserId });
         if (!result) return BadRequest(new { message = "No se pudo convertir la pre-venta o ya fue convertida." });

@@ -46,6 +46,10 @@ public class BackofficeController : ControllerBase
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
 
+        if (backofficeId == -1000) backofficeId = 237;
+        else if (backofficeId == -999) backofficeId = 101;
+        else if (backofficeId == -998) backofficeId = 9;
+
         try
         {
             var orders = await _getAssignedOrdersUseCase.ExecuteAsync(backofficeId, userId, statusId, campaignId, dateFrom, dateTo, ct);
@@ -65,6 +69,10 @@ public class BackofficeController : ControllerBase
         {
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
+
+        if (backofficeId == -1000) backofficeId = 237;
+        else if (backofficeId == -999) backofficeId = 101;
+        else if (backofficeId == -998) backofficeId = 9;
 
         try
         {
@@ -91,6 +99,10 @@ public class BackofficeController : ControllerBase
         {
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
+
+        if (backofficeId == -1000) backofficeId = 237;
+        else if (backofficeId == -999) backofficeId = 101;
+        else if (backofficeId == -998) backofficeId = 9;
 
         try
         {
@@ -130,6 +142,10 @@ public class BackofficeController : ControllerBase
         {
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
+
+        if (backofficeId == -1000) backofficeId = 237;
+        else if (backofficeId == -999) backofficeId = 101;
+        else if (backofficeId == -998) backofficeId = 9;
 
         try
         {
