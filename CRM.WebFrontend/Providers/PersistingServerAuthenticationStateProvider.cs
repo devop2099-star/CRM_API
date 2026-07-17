@@ -49,13 +49,15 @@ public class PersistingServerAuthenticationStateProvider : ServerAuthenticationS
 
             if (!string.IsNullOrEmpty(userId))
             {
+                var token = principal.FindFirst("access_token")?.Value ?? string.Empty;
                 _state.PersistAsJson("UserInfo", new UserInfo
                 {
                     UserId = userId,
                     Username = username,
                     Name = name,
                     Role = role,
-                    Campaign = campaign
+                    Campaign = campaign,
+                    Token = token
                 });
             }
         }

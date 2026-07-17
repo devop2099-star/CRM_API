@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using CRM.ApiHub.Application.DTOs;
+using CRM.ApiHub.Application.Interfaces;
 using CRM.ApiHub.Application.UseCases.Supervisor;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,15 +18,18 @@ public class SupervisorController : ControllerBase
     private readonly GetTeamOrdersUseCase _getTeamOrdersUseCase;
     private readonly GetTeamStatsUseCase _getTeamStatsUseCase;
     private readonly BulkTransferToBackofficeUseCase _bulkTransferToBackofficeUseCase;
+    private readonly INotificationService _notificationService;
 
     public SupervisorController(
         GetTeamOrdersUseCase getTeamOrdersUseCase,
         GetTeamStatsUseCase getTeamStatsUseCase,
-        BulkTransferToBackofficeUseCase bulkTransferToBackofficeUseCase)
+        BulkTransferToBackofficeUseCase bulkTransferToBackofficeUseCase,
+        INotificationService notificationService)
     {
         _getTeamOrdersUseCase = getTeamOrdersUseCase;
         _getTeamStatsUseCase = getTeamStatsUseCase;
         _bulkTransferToBackofficeUseCase = bulkTransferToBackofficeUseCase;
+        _notificationService = notificationService;
     }
 
     [HttpGet("orders")]
@@ -109,6 +113,25 @@ public class SupervisorController : ControllerBase
             if (result.SuccessfulCount == 0 && result.FailedCount > 0)
             {
                 return BadRequest(new { message = "No se pudo realizar la transferencia masiva de ninguna orden.", details = result });
+            }
+
+            // Send notification to the Backoffice analyst
+            if (result.SuccessfulCount > 0)
+            {
+                try
+                {
+                    await _notificationService.SendNotificationAsync(
+                        dto.BackofficeUserId,
+                        $"Nuevas órdenes asignadas ({result.SuccessfulCount})",
+                        $"Se te han asignado {result.SuccessfulCount} órdenes para revisión desde el Supervisor.",
+                        "TRANSFER",
+                        null
+                    );
+                }
+                catch (Exception notifEx)
+                {
+                    Console.WriteLine($"[SupervisorController] Error sending notification: {notifEx.Message}");
+                }
             }
 
             return Ok(new { message = "Transferencia masiva procesada.", details = result });

@@ -65,6 +65,7 @@ builder.Services.AddReverseProxy()
 
 builder.Services.AddScoped<IBackofficeService, BackofficeService>();
 builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
+builder.Services.AddScoped<CRM.WebFrontend.Client.Services.NotificationService>();
 // Agregar servicios de MudBlazor
 builder.Services.AddMudServices();
 var app = builder.Build();
