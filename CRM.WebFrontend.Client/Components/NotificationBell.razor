@@ -88,6 +88,44 @@
     }
 </div>
 
+<!-- Modal de Detalle -->
+@if (_showDetailModal && _selectedNotification != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0, 0, 0, 0.5); z-index: 1050;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="fw-bold mb-0">Detalle de Notificación</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDetailModal"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <h6 class="fw-bold text-dark mb-2">@_selectedNotification.Title</h6>
+                    <p class="text-muted mb-4" style="font-size: 0.95rem; white-space: pre-wrap;">
+                        @_selectedNotification.Message
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center" style="font-size: 0.85rem;">
+                        <span class="badge bg-light text-dark border">
+                            @(_selectedNotification.Module ?? "SISTEMA")
+                        </span>
+                        <span class="text-muted">
+                            @_selectedNotification.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </span>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0 d-flex justify-content-end gap-2">
+                    <button class="btn btn-light" @onclick="CloseDetailModal">Cerrar</button>
+                    @if (!string.IsNullOrEmpty(ResolveNavigationRoute(_selectedNotification)))
+                    {
+                        <button class="btn btn-dark" @onclick="NavigateToSelected">
+                            Ver en el sistema
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 <style>
     .notification-bell-wrapper {
         z-index: 1050;
@@ -194,6 +232,9 @@
     private string? accessToken;
     private Timer? pollingTimer;
 
+    private NotificationDto? _selectedNotification;
+    private bool _showDetailModal = false;
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -276,11 +317,26 @@
         }
 
         isOpen = false;
+        _selectedNotification = notif;
+        _showDetailModal = true;
+    }
 
-        var route = ResolveNavigationRoute(notif);
-        if (!string.IsNullOrEmpty(route))
+    private void CloseDetailModal()
+    {
+        _showDetailModal = false;
+        _selectedNotification = null;
+    }
+
+    private void NavigateToSelected()
+    {
+        if (_selectedNotification != null)
         {
-            NavManager.NavigateTo(route);
+            var route = ResolveNavigationRoute(_selectedNotification);
+            CloseDetailModal();
+            if (!string.IsNullOrEmpty(route))
+            {
+                NavManager.NavigateTo(route);
+            }
         }
     }
 
