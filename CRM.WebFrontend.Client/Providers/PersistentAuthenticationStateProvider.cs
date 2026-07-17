@@ -25,7 +25,8 @@ public class PersistentAuthenticationStateProvider : AuthenticationStateProvider
             new Claim("username", userInfo.Username),
             new Claim(ClaimTypes.Name, userInfo.Name),
             new Claim(ClaimTypes.Role, userInfo.Role),
-            new Claim("campaign", userInfo.Campaign)
+            new Claim("campaign", userInfo.Campaign),
+            new Claim("access_token", userInfo.Token)
         };
 
         var claimsIdentity = new ClaimsIdentity(claims, "PersistentAuth");
@@ -43,4 +44,5 @@ public class UserInfo
     public string Name { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public string Campaign { get; set; } = string.Empty;
+    public string Token { get; set; } = string.Empty;
 }

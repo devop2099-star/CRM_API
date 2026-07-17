@@ -222,6 +222,11 @@
 
         try
         {
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                accessToken = authState.User.FindFirst("access_token")?.Value;
+            }
             notifications = await NotifService.GetUnreadAsync(currentUserId, accessToken);
             unreadCount = notifications.Count(n => !n.IsRead);
         }
