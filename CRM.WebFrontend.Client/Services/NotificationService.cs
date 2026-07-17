@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using CRM.WebFrontend.Client.Models;
 
 namespace CRM.WebFrontend.Client.Services;
@@ -12,11 +13,21 @@ public class NotificationService
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task<List<NotificationDto>> GetUnreadAsync(long userId)
+    private HttpClient CreateAuthenticatedClient(string? token)
+    {
+        var client = _httpClientFactory.CreateClient("BackendApi");
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+        return client;
+    }
+
+    public async Task<List<NotificationDto>> GetUnreadAsync(long userId, string? token = null)
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("BackendApi");
+            var client = CreateAuthenticatedClient(token);
             var result = await client.GetFromJsonAsync<List<NotificationDto>>($"/api/notifications?userId={userId}");
             return result ?? new List<NotificationDto>();
         }
@@ -27,11 +38,11 @@ public class NotificationService
         }
     }
 
-    public async Task MarkAsReadAsync(int idAlert)
+    public async Task MarkAsReadAsync(int idAlert, string? token = null)
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("BackendApi");
+            var client = CreateAuthenticatedClient(token);
             await client.PatchAsync($"/api/notifications/{idAlert}/read", null);
         }
         catch (Exception ex)
@@ -40,11 +51,11 @@ public class NotificationService
         }
     }
 
-    public async Task MarkAllAsReadAsync(long userId)
+    public async Task MarkAllAsReadAsync(long userId, string? token = null)
     {
         try
         {
-            var client = _httpClientFactory.CreateClient("BackendApi");
+            var client = CreateAuthenticatedClient(token);
             await client.PostAsync($"/api/notifications/read-all?userId={userId}", null);
         }
         catch (Exception ex)

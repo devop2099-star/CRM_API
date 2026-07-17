@@ -189,11 +189,19 @@
     private bool isOpen = false;
     private bool isLoading = false;
     private long currentUserId = 0;
+    private string? accessToken;
     private Timer? pollingTimer;
 
     protected override async Task OnInitializedAsync()
     {
-        currentUserId = await GetCurrentUserIdAsync();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var idStr = user.FindFirst("id_user")?.Value
+                    ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? user.FindFirst("sub")?.Value;
+        currentUserId = long.TryParse(idStr, out var id) ? id : 0;
+        accessToken = user.FindFirst("access_token")?.Value;
 
         if (currentUserId > 0)
         {
@@ -208,30 +216,13 @@
         }
     }
 
-    private async Task<long> GetCurrentUserIdAsync()
-    {
-        try
-        {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            var idStr = user.FindFirst("id_user")?.Value
-                        ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                        ?? user.FindFirst("sub")?.Value;
-            return long.TryParse(idStr, out var id) ? id : 0;
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-
     private async Task RefreshNotificationsAsync()
     {
         if (currentUserId <= 0) return;
 
         try
         {
-            notifications = await NotifService.GetUnreadAsync(currentUserId);
+            notifications = await NotifService.GetUnreadAsync(currentUserId, accessToken);
             unreadCount = notifications.Count(n => !n.IsRead);
         }
         catch (Exception ex)
@@ -254,7 +245,7 @@
     {
         if (!notif.IsRead)
         {
-            await NotifService.MarkAsReadAsync(notif.IdAlert);
+            await NotifService.MarkAsReadAsync(notif.IdAlert, accessToken);
             notif.IsRead = true;
             unreadCount = notifications.Count(n => !n.IsRead);
         }
@@ -271,7 +262,7 @@
 
     private async Task MarkAllRead()
     {
-        await NotifService.MarkAllAsReadAsync(currentUserId);
+        await NotifService.MarkAllAsReadAsync(currentUserId, accessToken);
         foreach (var n in notifications) n.IsRead = true;
         unreadCount = 0;
     }
