@@ -260,6 +260,24 @@ public class SalesOrderRepository : ISalesOrderRepository
             UNION ALL
 
             SELECT 
+                r.register AS timestamp,
+                'INCIDENT_RESPONSE' AS event_type,
+                r.responded_by AS actor_id,
+                TRIM(CONCAT(col.name, ' ', col.paternal_surname, ' ', col.maternal_surname)) AS actor_name,
+                CONCAT('Respuesta en incidencia #', r.id_order_incident, ' (', r.response_type, '): ', r.response_text) AS description,
+                json_build_object(
+                    'id_order_incident', r.id_order_incident,
+                    'response_type', r.response_type,
+                    'response_text', r.response_text
+                )::text AS details_json
+            FROM sales_service.incident_response r
+            INNER JOIN sales_service.order_incident i ON i.id_order_incident = r.id_order_incident
+            LEFT JOIN ext_ecosystem.collaborators col ON col.id_user = r.responded_by
+            WHERE i.id_order = @IdOrder
+
+            UNION ALL
+
+            SELECT 
                 uploaded_at AS timestamp,
                 'DOCUMENT_UPLOADED' AS event_type,
                 uploaded_by AS actor_id,
