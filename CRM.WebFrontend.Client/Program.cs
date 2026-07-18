@@ -15,4 +15,6 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddSingleton<AuthenticationStateProvider, PersistentAuthenticationStateProvider>();
 
+builder.Services.AddScoped<CRM.WebFrontend.Client.Services.NotificationService>();
+
 await builder.Build().RunAsync();

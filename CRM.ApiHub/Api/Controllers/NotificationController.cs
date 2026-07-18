@@ -17,9 +17,9 @@ public class NotificationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetUnread([FromQuery] long userId)
+    public async Task<IActionResult> GetRecent([FromQuery] long userId, [FromQuery] int limit = 50)
     {
-        var notifications = await _notificationRepository.GetUnreadAsync(userId);
+        var notifications = await _notificationRepository.GetRecentAsync(userId, limit);
         return Ok(notifications);
     }
 
