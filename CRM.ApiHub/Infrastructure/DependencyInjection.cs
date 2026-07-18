@@ -8,6 +8,10 @@ using CRM.ApiHub.Application.UseCases.Supervisor;
 using CRM.ApiHub.Application.UseCases.Backoffice;
 using CRM.ApiHub.Application.UseCases.Audit;
 using CRM.ApiHub.Application.UseCases.KB;
+using CRM.ApiHub.Application.UseCases.Commissions;
+using CRM.ApiHub.Application.UseCases.Providers;
+using CRM.ApiHub.Application.UseCases.Activations;
+using CRM.ApiHub.Application.UseCases.Reports;
 using CRM.ApiHub.Domain.Repositories;
 using CRM.ApiHub.Infrastructure.Authentication;
 using CRM.ApiHub.Infrastructure.Persistence;
@@ -50,6 +54,11 @@ public static class DependencyInjection
         services.AddScoped<IAlternateProfileRepository, AlternateProfileRepository>();
         services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
+        services.AddScoped<ICurrencyRepository, CurrencyRepository>();
+        services.AddScoped<ICommissionRepository, CommissionRepository>();
+        services.AddScoped<IProviderRepository, ProviderRepository>();
+        services.AddScoped<IActivationRepository, ActivationRepository>();
+        services.AddScoped<IReportRepository, ReportRepository>();
 
         // Services & Stores
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
@@ -109,6 +118,33 @@ public static class DependencyInjection
         services.AddScoped<SearchKbArticlesUseCase>();
         services.AddScoped<GetKbArticleByIdUseCase>();
         services.AddScoped<SubmitKbFeedbackUseCase>();
+
+        // Currency & Commission Use Cases
+        services.AddScoped<GetCurrenciesUseCase>();
+        services.AddScoped<ConvertAmountUseCase>();
+        services.AddScoped<GetSettlementsUseCase>();
+        services.AddScoped<CreateSettlementUseCase>();
+        services.AddScoped<AddSettlementItemsUseCase>();
+        services.AddScoped<UpdateSettlementStatusUseCase>();
+        services.AddScoped<DeleteSettlementUseCase>();
+
+        // Provider Use Cases
+        services.AddScoped<GetProviderCatalogUseCase>();
+        services.AddScoped<GetProviderStatusMappingUseCase>();
+        services.AddScoped<LogProviderSyncUseCase>();
+        services.AddScoped<UpdateOrderProviderStatusUseCase>();
+
+        // Activation Use Cases
+        services.AddScoped<GetPendingActivationsUseCase>();
+        services.AddScoped<GetActivationsByOrderUseCase>();
+        services.AddScoped<UpdateActivationUseCase>();
+        services.AddScoped<GetDelayedActivationsUseCase>();
+
+        // Report Use Cases
+        services.AddScoped<GetConversionFunnelUseCase>();
+        services.AddScoped<GetSalesByAsesorUseCase>();
+        services.AddScoped<GetIncidentStatsUseCase>();
+        services.AddScoped<GetActivationStatsUseCase>();
 
         // JWT Authentication
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
