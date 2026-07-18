@@ -1,0 +1,576 @@
+@page "/backoffice/audit/{idOrder:long}"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "BACKOFFICE")]
+@using CRM.WebFrontend.Services
+@using System.Timers
+@implements IDisposable
+@inject ISalesOrderService SalesOrderService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<style>
+    :root {
+        --bg-app: #f4f4f5;
+        --surface: #ffffff;
+        --border-color: #e4e4e7;
+        --text-main: #18181b;
+        --text-muted: #71717a;
+        --accent: #09090b;
+        --danger: #ef4444;
+        --danger-soft: #fef2f2;
+        --success: #10b981;
+        --success-soft: #ecfdf5;
+        --warning: #f59e0b;
+        --warning-soft: #fffbeb;
+        --radius-lg: 16px;
+        --radius-md: 12px;
+        --radius-sm: 8px;
+    }
+
+    .premium-panel {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.01);
+        padding: 1.5rem;
+    }
+
+    .section-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+    }
+
+    .btn-status-group {
+        display: flex;
+        gap: 6px;
+    }
+
+    .btn-status {
+        border: 1px solid var(--border-color);
+        background: #fafafa;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 6px 16px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-status.selected-ok {
+        background: var(--success-soft);
+        color: #047857;
+        border-color: #a7f3d0;
+    }
+
+    .btn-status.selected-ko {
+        background: var(--danger-soft);
+        color: #b91c1c;
+        border-color: #fecaca;
+    }
+
+    .btn-status.selected-na {
+        background: #f4f4f5;
+        color: #4b5563;
+        border-color: #d1d5db;
+    }
+
+    .badge-sla {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 20px;
+        text-transform: uppercase;
+    }
+
+    .sla-green {
+        background: var(--success-soft);
+        color: #047857;
+    }
+
+    .sla-yellow {
+        background: var(--warning-soft);
+        color: #b45309;
+    }
+
+    .sla-red {
+        background: var(--danger-soft);
+        color: #b91c1c;
+    }
+
+    /* Modal premium styles */
+    .modal-backdrop-blur {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(9, 9, 11, 0.4);
+        backdrop-filter: blur(4px);
+        z-index: 1050;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-container {
+        background: #fff;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        width: 100%;
+        max-width: 550px;
+        overflow: hidden;
+    }
+</style>
+
+<div class="container-fluid py-4" style="max-width: 1200px;">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <a href="/backoffice/dashboard" class="text-decoration-none text-muted d-flex align-items-center gap-1 mb-2" style="font-size: 0.85rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Volver a la bandeja del BackOffice
+            </a>
+            <h2 class="fw-bold m-0">Auditoría de Audio y Checklist</h2>
+        </div>
+
+        @if (_order != null)
+        {
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted" style="font-size: 0.85rem;">SLA de la Orden:</span>
+                <span class="badge-sla @GetSlaClass()">@_slaStatusText</span>
+            </div>
+        }
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="premium-panel d-flex flex-column align-items-center justify-content-center py-5">
+            <div class="spinner-border text-dark mb-3" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="text-muted m-0">Cargando detalles de la orden y checklist...</p>
+        </div>
+    }
+    else if (_order == null)
+    {
+        <div class="premium-panel text-center py-5">
+            <svg class="text-danger mb-3" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <h4 class="fw-bold">Orden no encontrada</h4>
+            <p class="text-muted">No se pudo recuperar la información de la orden ID #@idOrder.</p>
+            <a href="/backoffice/dashboard" class="btn btn-dark rounded-pill px-4 mt-2">Regresar al panel</a>
+        </div>
+    }
+    else
+    {
+        <!-- Header Info de la Orden -->
+        <div class="premium-panel mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <span class="section-title">Código de Orden</span>
+                    <div class="fw-bold fs-5 mt-1">#@_order.IdOrder</div>
+                </div>
+                <div class="col-md-3">
+                    <span class="section-title">Campaña</span>
+                    <div class="fw-semibold mt-1">Campaña ID: @_order.IdCmpg</div>
+                </div>
+                <div class="col-md-3">
+                    <span class="section-title">Fecha de Venta</span>
+                    <div class="mt-1">@_order.SalesDate.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+                <div class="col-md-3">
+                    <span class="section-title">Estado de Venta</span>
+                    <div class="mt-1"><span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">@_order.Status</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reproductor de Audio Simulado Premium -->
+        <div class="premium-panel mb-4">
+            <h4 class="fw-bold mb-3" style="font-size: 1.05rem;">Grabación de Audio Contractual</h4>
+            <div class="d-flex align-items-center gap-3 p-3 rounded border" style="background: #fafafa;">
+                <button class="btn btn-dark d-flex align-items-center justify-content-center" 
+                        style="width: 44px; height: 44px; border-radius: 50%; border: none; outline: none; cursor: pointer;" 
+                        @onclick="TogglePlay">
+                    @if (_isPlaying)
+                    {
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    }
+                    else
+                    {
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    }
+                </button>
+                <div class="d-flex flex-column flex-grow-1 gap-1">
+                    <div class="d-flex align-items-center justify-content-between text-muted" style="font-size: 0.75rem;">
+                        <span>@FormatTime(_currentTimeSeconds)</span>
+                        <span>04:32</span>
+                    </div>
+                    <div class="position-relative" style="height: 6px; background: #e4e4e7; border-radius: 3px; cursor: pointer;" @onclick="SeekAudio">
+                        <div style="width: @(_playbackPercent)%; height: 100%; background: #09090b; border-radius: 3px; transition: width 0.1s linear;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Checklist de Items -->
+        <div class="premium-panel mb-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                <h4 class="fw-bold m-0" style="font-size: 1.05rem;">Checklist de Control de Calidad</h4>
+                <span class="text-muted" style="font-size: 0.85rem;">Marcados: @_markedCount de @_checklist.Count</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%;" class="section-title">Nº</th>
+                            <th style="width: 45%;" class="section-title">Ítem de Verificación</th>
+                            <th style="width: 20%;" class="section-title text-center">Evaluación</th>
+                            <th style="width: 12%;" class="section-title">Timestamp</th>
+                            <th style="width: 18%;" class="section-title">Observación (KO)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _checklist)
+                        {
+                            <tr>
+                                <td class="fw-bold text-muted">@item.Id</td>
+                                <td>
+                                    <div class="fw-medium">@item.Question</div>
+                                    <span class="badge bg-light text-muted border rounded-pill mt-1" style="font-size: 0.65rem;">@item.Category</span>
+                                </td>
+                                <td>
+                                    <div class="btn-status-group justify-content-center">
+                                        <button type="button" class="btn-status @(item.Result == "OK" ? "selected-ok" : "")" @onclick='() => SetResult(item, "OK")'>
+                                            OK
+                                        </button>
+                                        <button type="button" class="btn-status @(item.Result == "KO" ? "selected-ko" : "")" @onclick='() => SetResult(item, "KO")'>
+                                            KO
+                                        </button>
+                                        <button type="button" class="btn-status @(item.Result == "N/A" ? "selected-na" : "")" @onclick='() => SetResult(item, "N/A")'>
+                                            N/A
+                                        </button>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-white" style="cursor: pointer; font-size: 0.75rem;" title="Usar segundo actual del audio" @onclick="() => CopyCurrentTimestamp(item)">
+                                            ⏱️
+                                        </span>
+                                        <input type="text" class="form-control form-control-sm" placeholder="MM:SS" @bind="item.Timestamp" />
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm @(item.Result == "KO" && string.IsNullOrWhiteSpace(item.Observation) ? "border-danger" : "")" 
+                                           placeholder="Escribir si es KO..." 
+                                           @bind="item.Observation" 
+                                           disabled="@(item.Result != "KO")" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Panel de Alerta Global en caso de KO -->
+            @if (_hasKo)
+            {
+                <div class="alert alert-warning border border-warning border-opacity-30 rounded-lg d-flex align-items-center gap-2 mt-3" role="alert">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    <div style="font-size: 0.85rem;">
+                        <strong>Atención:</strong> Tienes al menos un ítem evaluado como <strong>KO</strong>. El resultado global final será guardado automáticamente como <strong>RECHAZADO</strong>.
+                    </div>
+                </div>
+            }
+
+            <!-- Conteo Resumen y Botón de Envío -->
+            <div class="d-flex align-items-center justify-content-between border-top pt-3 mt-4">
+                <div class="d-flex gap-3 text-muted" style="font-size: 0.85rem;">
+                    <span>Aprobados (OK): <strong class="text-success">@_okCount</strong></span>
+                    <span>Rechazados (KO): <strong class="text-danger">@_koCount</strong></span>
+                    <span>N/A: <strong>@_naCount</strong></span>
+                </div>
+
+                <button class="btn btn-dark rounded-pill px-4 py-2 fw-semibold" 
+                        disabled="@(!IsChecklistComplete)" 
+                        @onclick="OpenPreviewModal">
+                    Cerrar Auditoría
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal de Previsualización Global -->
+@if (_showPreviewModal)
+{
+    <div class="modal-backdrop-blur">
+        <div class="modal-container">
+            <div class="border-bottom p-3 bg-light d-flex align-items-center justify-content-between">
+                <h5 class="fw-bold m-0">Confirmación de Auditoría de Audio</h5>
+                <button type="button" class="btn-close" @onclick="ClosePreviewModal"></button>
+            </div>
+            
+            <div class="p-4">
+                <div class="text-center mb-4">
+                    <span class="text-muted d-block mb-1" style="font-size: 0.85rem;">RESULTADO GLOBAL PROPUESTO</span>
+                    @if (_hasKo)
+                    {
+                        <span class="badge bg-danger text-white rounded-pill px-4 py-2 fs-5 fw-bold">RECHAZADA</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success text-white rounded-pill px-4 py-2 fs-5 fw-bold">APROBADA</span>
+                    }
+                </div>
+
+                <div class="card p-3 border mb-3 bg-light" style="font-size: 0.85rem;">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Orden de Venta:</span>
+                        <span class="fw-bold">#@_order?.IdOrder</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Evaluaciones Conformes (OK):</span>
+                        <span class="fw-semibold text-success">@_okCount</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Evaluaciones No Conformes (KO):</span>
+                        <span class="fw-semibold text-danger">@_koCount</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Total de Puntos Evaluados:</span>
+                        <span>@_markedCount de @_checklist.Count</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label section-title">Comentarios Generales del Auditor</label>
+                    <textarea class="form-control" rows="3" placeholder="Ingresa notas generales opcionales..." @bind="_globalObservation"></textarea>
+                </div>
+            </div>
+
+            <div class="border-top p-3 d-flex align-items-center justify-content-end gap-2 bg-light">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" @onclick="ClosePreviewModal">Seguir Editando</button>
+                <button type="button" class="btn btn-dark rounded-pill px-4" disabled="@_isSaving" @onclick="ConfirmCloseAudit">
+                    @if (_isSaving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    Confirmar y Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public long idOrder { get; set; }
+
+    private SalesOrderViewModel? _order;
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+
+    // SLA State
+    private string _slaStatusText = "Dentro de SLA";
+    private int _currentTimeSeconds = 0;
+    private bool _isPlaying = false;
+    private Timer? _audioTimer;
+    private double _playbackPercent => (_currentTimeSeconds / 272.0) * 100; // Total 4:32 (272 seconds)
+
+    // Checklist State
+    private List<AuditChecklistItem> _checklist = new()
+    {
+        new() { Id = 1, Question = "Identidad del cliente verificada mediante DNI/NIE y datos personales de contacto.", Category = "Identidad" },
+        new() { Id = 2, Question = "Explicación clara del servicio contratado, precio final y desglose de impuestos.", Category = "Oferta" },
+        new() { Id = 3, Question = "Lectura completa de las cláusulas de permanencia y penalizaciones por cancelación anticipada.", Category = "Legales" },
+        new() { Id = 4, Question = "Grabación de consentimiento expreso e inequívoco del titular para la contratación del servicio.", Category = "Consentimiento" },
+        new() { Id = 5, Question = "Verificación de la cuenta bancaria (IBAN) y autorización para cargo de recibos.", Category = "Pago" }
+    };
+
+    private int _markedCount => _checklist.Count(item => !string.IsNullOrEmpty(item.Result));
+    private int _okCount => _checklist.Count(item => item.Result == "OK");
+    private int _koCount => _checklist.Count(item => item.Result == "KO");
+    private int _naCount => _checklist.Count(item => item.Result == "N/A");
+    private bool _hasKo => _koCount > 0;
+    private bool IsChecklistComplete => _markedCount == _checklist.Count;
+
+    // Modal state
+    private bool _showPreviewModal = false;
+    private string _globalObservation = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _order = await SalesOrderService.GetOrderByIdAsync(idOrder);
+            if (_order != null)
+            {
+                CalculateSla();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar la orden: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+
+        // Timer para la simulación del audio
+        _audioTimer = new Timer(1000);
+        _audioTimer.Elapsed += OnAudioTick;
+    }
+
+    private void CalculateSla()
+    {
+        if (_order == null) return;
+        var diff = DateTime.UtcNow - _order.SalesDate;
+        
+        if (diff.TotalHours < 24)
+        {
+            _slaStatusText = "Dentro de SLA";
+        }
+        else if (diff.TotalHours < 48)
+        {
+            _slaStatusText = "Al límite de SLA";
+        }
+        else
+        {
+            _slaStatusText = "Fuera de SLA";
+        }
+    }
+
+    private string GetSlaClass()
+    {
+        return _slaStatusText switch
+        {
+            "Dentro de SLA" => "sla-green",
+            "Al límite de SLA" => "sla-yellow",
+            "Fuera de SLA" => "sla-red",
+            _ => "sla-green"
+        };
+    }
+
+    private void SetResult(AuditChecklistItem item, string result)
+    {
+        item.Result = result;
+        if (result != "KO")
+        {
+            item.Observation = string.Empty;
+        }
+        StateHasChanged();
+    }
+
+    private void TogglePlay()
+    {
+        _isPlaying = !_isPlaying;
+        if (_isPlaying)
+        {
+            _audioTimer?.Start();
+        }
+        else
+        {
+            _audioTimer?.Stop();
+        }
+    }
+
+    private void SeekAudio(MouseEventArgs e)
+    {
+        // Posicionar el audio de forma básica usando coordenadas simuladas
+        _currentTimeSeconds = (int)(272 * 0.5); // Avanzar a la mitad del audio como ejemplo simple
+        StateHasChanged();
+    }
+
+    private void CopyCurrentTimestamp(AuditChecklistItem item)
+    {
+        item.Timestamp = FormatTime(_currentTimeSeconds);
+        StateHasChanged();
+    }
+
+    private string FormatTime(int seconds)
+    {
+        int minutes = seconds / 60;
+        int remainingSeconds = seconds % 60;
+        return $"{minutes:D2}:{remainingSeconds:D2}";
+    }
+
+    private void OnAudioTick(object? sender, ElapsedEventArgs e)
+    {
+        if (_currentTimeSeconds < 272)
+        {
+            _currentTimeSeconds++;
+            InvokeAsync(StateHasChanged);
+        }
+        else
+        {
+            _isPlaying = false;
+            _audioTimer?.Stop();
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OpenPreviewModal()
+    {
+        // Validar observaciones obligatorias para ítems con KO
+        bool hasMissingObservations = _checklist.Any(item => item.Result == "KO" && string.IsNullOrWhiteSpace(item.Observation));
+        if (hasMissingObservations)
+        {
+            Snackbar.Add("Debes indicar una observación para cada ítem marcado como KO.", Severity.Warning);
+            return;
+        }
+
+        _showPreviewModal = true;
+    }
+
+    private void ClosePreviewModal()
+    {
+        _showPreviewModal = false;
+    }
+
+    private async Task ConfirmCloseAudit()
+    {
+        _isSaving = true;
+        try
+        {
+            // Simulación del guardado en base de datos.
+            // Esto cumple con el plan mockeando el backend bloqueador por ahora.
+            await Task.Delay(1500);
+            
+            var globalRes = _hasKo ? "RECHAZADA" : "APROBADA";
+            Snackbar.Add($"Auditoría guardada exitosamente. Resultado global: {globalRes}.", Severity.Success);
+            
+            _showPreviewModal = false;
+            NavigationManager.NavigateTo("/backoffice/dashboard");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al guardar auditoría: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _audioTimer?.Dispose();
+    }
+
+    public class AuditChecklistItem
+    {
+        public int Id { get; set; }
+        public string Question { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Result { get; set; } = string.Empty;
+        public string Timestamp { get; set; } = string.Empty;
+        public string Observation { get; set; } = string.Empty;
+    }
+}
