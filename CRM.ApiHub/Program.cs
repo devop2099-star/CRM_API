@@ -1,5 +1,6 @@
 using CRM.ApiHub.Infrastructure;
 using Microsoft.OpenApi;
+using CRM.ApiHub.Api.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,5 +49,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();

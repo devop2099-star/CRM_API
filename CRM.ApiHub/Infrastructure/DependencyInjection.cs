@@ -75,6 +75,10 @@ public static class DependencyInjection
         services.AddSingleton<IRefreshTokenStore, RedisRefreshTokenStore>();
         
         services.AddScoped<INotificationService, Application.Services.NotificationService>();
+
+        // SignalR & Custom UserId
+        services.AddSignalR();
+        services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, CRM.ApiHub.Infrastructure.Authentication.CustomUserIdProvider>();
         // Use Cases
         services.AddScoped<LoginUseCase>();
         services.AddScoped<MeUseCase>();
