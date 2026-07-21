@@ -3,10 +3,12 @@
 @using CRM.WebFrontend.Client.Services
 @using MudBlazor
 @using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IKbService KbService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
 @rendermode InteractiveServer
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
@@ -131,7 +133,15 @@
         }
     }
     private List<string> recentSearches = new();
+    private string storageKey = "kb_recent_searches";
     
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var username = authState.User.Identity?.Name ?? "default";
+        storageKey = $"kb_recent_searches_{username}";
+    }
+
     private class CategoryInfo
     {
         public string Name { get; set; } = "";
@@ -161,7 +171,7 @@
     {
         try
         {
-            var storedStr = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "kb_recent_searches");
+            var storedStr = await JSRuntime.InvokeAsync<string>("localStorage.getItem", storageKey);
             if (!string.IsNullOrEmpty(storedStr))
             {
                 recentSearches = System.Text.Json.JsonSerializer.Deserialize<List<string>>(storedStr) ?? new();
@@ -183,7 +193,7 @@
         try
         {
             var json = System.Text.Json.JsonSerializer.Serialize(recentSearches);
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "kb_recent_searches", json);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", storageKey, json);
         }
         catch { /* Ignore */ }
     }
