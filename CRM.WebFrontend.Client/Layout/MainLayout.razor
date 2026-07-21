@@ -1,54 +1,50 @@
 @inherits LayoutComponentBase
 
-<div id="wrapper" class="@(_sidebarCollapsed ? "collapsed" : "")">
-    <!-- Floating Logo Toggle Button -->
-    <div id="sidebar-logo-container" @onclick="ToggleSidebar" class="d-flex align-items-center justify-content-center shadow-sm" title="Alternar Menú">
-        <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px; font-size: 1.25rem; user-select: none;">
-            ✦
+<div class="dashboard-root">
+    <!-- Sidebar Left Panel -->
+    <aside class="custom-sidebar @(_sidebarCollapsed ? "collapsed" : "")">
+        <div class="logo-container">
+            <div class="logo-g" @onclick="ToggleSidebar" title="Alternar Menú">G</div>
         </div>
-    </div>
-
-    <!-- Sidebar -->
-    <div id="sidebar-wrapper">
-        <!-- Spacer to make room for absolute logo -->
-        <div style="height: 48px; width: 100%; flex-shrink: 0;"></div>
         
-        <div class="flex-grow-1 w-100">
+        <div class="sidebar-menu">
             <NavMenu />
         </div>
         
         <!-- Bottom Sidebar profile avatar & settings -->
-        <div class="pt-3 border-top border-secondary border-opacity-10 w-100 d-flex flex-column align-items-center gap-2">
+        <div class="sidebar-footer">
             <!-- Settings Icon Link -->
-            <NavLink class="nav-link" href="/settings" title="Configuración">
+            <NavLink class="footer-btn" href="/settings" title="Configuración">
                 <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
             </NavLink>
             <!-- Logout Icon Link -->
-            <NavLink class="nav-link text-danger-hover" href="/logout-endpoint" title="Cerrar Sesión">
+            <NavLink class="footer-btn text-danger-hover" href="/logout-endpoint" title="Cerrar Sesión">
                 <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
             </NavLink>
             
             <AuthorizeView>
                 <Authorized>
-                    <div class="rounded-circle bg-white text-dark d-flex align-items-center justify-content-center fw-bold shadow-sm" 
-                         style="width: 38px; height: 38px; font-size: 1rem; cursor: pointer; transition: all 0.2s ease; margin-top: 4px;"
+                    <div class="avatar-container" 
                          title="@($"{context.User.Identity?.Name} ({string.Join(", ", context.User.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role || c.Type == "roles").Select(c => c.Value))})")">
-                        @(context.User.Identity?.Name?.FirstOrDefault().ToString().ToUpper() ?? "U")
+                        <span class="avatar-letter" style="color: #FFFFFF; font-weight: 700; font-size: 1rem;">
+                            @(context.User.Identity?.Name?.FirstOrDefault().ToString().ToUpper() ?? "U")
+                        </span>
                     </div>
                 </Authorized>
             </AuthorizeView>
         </div>
-    </div>
+    </aside>
 
-    <!-- Page Content -->
-    <div id="page-content-wrapper">
-        <header class="custom-header">
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Navigation -->
+        <header class="top-navigation">
             <div class="d-flex align-items-center gap-3">
-                <!-- Empty spacing since menu is toggled by clicking the logo -->
+                <h4 class="m-0 font-weight-bold" style="font-weight: 700; font-size: 1.15rem; letter-spacing: -0.02em; color: var(--text-primary);">NYX CRM</h4>
             </div>
             
             <div class="d-flex align-items-center gap-3">
-                <!-- Search & Notification Buttons with clean SVGs -->
+                <!-- Search & Notification Buttons -->
                 <button class="btn btn-light p-0 rounded-circle border-0 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: rgba(0,0,0,0.03); color: var(--text-secondary);" title="Buscar">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </button>
@@ -58,22 +54,35 @@
                 
                 <AuthorizeView>
                     <Authorized>
-                        <a href="/logout-endpoint" class="btn btn-primary btn-sm px-3 rounded-pill shadow-none" style="font-size: 0.775rem; height: 30px;">Cerrar Sesión</a>
+                        <a href="/logout-endpoint" class="btn btn-primary btn-sm px-3 rounded-pill shadow-none" style="font-size: 0.775rem; height: 30px; font-weight: 600;">Cerrar Sesión</a>
                     </Authorized>
                     <NotAuthorized>
-                        <a href="/login" class="btn btn-primary btn-sm px-3 rounded-pill shadow-none" style="font-size: 0.775rem; height: 30px;">Iniciar Sesión</a>
+                        <a href="/login" class="btn btn-primary btn-sm px-3 rounded-pill shadow-none" style="font-size: 0.775rem; height: 30px; font-weight: 600;">Iniciar Sesión</a>
                     </NotAuthorized>
                 </AuthorizeView>
             </div>
         </header>
 
-        <main class="flex-grow-1 overflow-auto">
-            <div class="container-fluid">
-                @Body
-            </div>
-        </main>
-    </div>
+        <!-- Dynamic Page Body -->
+        <div class="container-fluid py-2">
+            @Body
+        </div>
+    </main>
 </div>
+
+<style>
+    /* Collapse sidebar transitions */
+    .custom-sidebar {
+        transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), padding 0.3s ease, border-right 0.3s ease;
+    }
+    .custom-sidebar.collapsed {
+        width: 0px !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        border-right: none !important;
+        overflow: hidden !important;
+    }
+</style>
 
 @code {
     private bool _sidebarCollapsed = false;

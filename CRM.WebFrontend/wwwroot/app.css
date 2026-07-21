@@ -380,3 +380,28 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     padding-top: 10px !important;
     padding-bottom: 10px !important;
 }
+
+/* Sidebar Nav Links tweaks for the new markup */
+.custom-sidebar .nav-link-text {
+    display: none !important;
+}
+
+.custom-sidebar .menu-item {
+    text-decoration: none;
+}
+
+.custom-sidebar .menu-item svg {
+    width: 20px;
+    height: 20px;
+    transition: var(--transition-smooth);
+}
+
+/* Ensure stroke-based SVGs don't get filled in with black/gray color */
+.custom-sidebar .menu-item svg[fill="none"] {
+    fill: none !important;
+    stroke: currentColor !important;
+}
+
+.top-navigation {
+    padding-top: 15px !important;
+}
