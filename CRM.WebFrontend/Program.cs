@@ -67,6 +67,7 @@ builder.Services.AddScoped<IBackofficeService, BackofficeService>();
 builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.NotificationService>();
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.IKbService, CRM.WebFrontend.Client.Services.KbService>();
+builder.Services.AddScoped<CRM.WebFrontend.Client.Services.ICommissionService, CRM.WebFrontend.Client.Services.CommissionService>();
 // Agregar servicios de MudBlazor
 builder.Services.AddMudServices();
 var app = builder.Build();
