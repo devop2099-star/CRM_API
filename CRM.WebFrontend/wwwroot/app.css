@@ -1,25 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-
 :root {
-    --font-main: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --bg-app: #f4f4f5; /* Vampire Gray */
-    --surface: #ffffff; /* Cotton */
-    --primary: #09090b; /* Midnight */
-    --primary-hover: #18181b;
-    --border-color: #e4e4e7; /* Platinum Gray */
-    --text-main: #09090b;
-    --text-muted: #71717a; /* Sonic Silver */
-    --sidebar-bg: #09090b;
-    --sidebar-color: #ffffff;
+    --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --bg-app: #EAEAED; /* Light Gray Dashboard Background */
+    --surface: #FFFFFF; /* Pure White Card Surface */
+    --primary: #1C1E21; /* Dark Charcoal Principal */
+    --primary-hover: #343A40;
+    --border-color: rgba(220, 224, 228, 0.7); /* Subtle border color */
+    --text-main: #1C1E21;
+    --text-muted: #5E6973; /* Slate secondary text */
+    
+    /* Neon accents from the exportado design */
+    --neon: #D4F953;
+    --neon-hover: #C2E842;
+    --sidebar-bg: #F4F5F6; /* Light gray sidebar background */
+    --sidebar-color: #1C1E21;
     
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+    --shadow-card: 0 10px 40px -10px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
     
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 14px;
-    --radius-xl: 20px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
     --radius-pill: 50px;
 }
 
@@ -70,10 +73,10 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     overflow: hidden;
 }
 
-/* Sidebar: Narrow, Pill-shaped Capsule (Vampire / Midnight theme) */
+/* Sidebar: Narrow, Pill-shaped Capsule (New light sidebar theme) */
 #sidebar-wrapper {
-    background-color: var(--primary); /* Midnight */
-    color: #ffffff;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-color);
     border-radius: 100px; /* Perfect pill capsule */
     width: 60px; /* Slim and elegant */
     flex-shrink: 0;
@@ -81,11 +84,11 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     flex-direction: column;
     padding: 22px 0 16px 0;
     box-shadow: var(--shadow-lg);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
     align-items: center;
     overflow-y: auto;
     overflow-x: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-color);
 }
 
 #sidebar-wrapper .sidebar-heading {
@@ -94,7 +97,7 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     padding: 0;
 }
 
-/* Navigation Links - Centered Circular Buttons */
+/* Navigation Links - Centered Circular Buttons matching new theme */
 #sidebar-wrapper .nav-link {
     display: flex;
     align-items: center;
@@ -102,22 +105,22 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     width: 40px;
     height: 40px;
     border-radius: 50%; /* Perfect circle */
-    color: rgba(255, 255, 255, 0.45); /* Muted inactive state */
+    color: var(--text-muted); /* Muted inactive state */
     margin: 3px auto;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
     text-decoration: none;
     position: relative;
 }
 
 #sidebar-wrapper .nav-link:hover {
-    color: #ffffff;
-    background-color: rgba(255, 255, 255, 0.07);
+    color: var(--text-main);
+    background-color: rgba(0, 0, 0, 0.04);
 }
 
 #sidebar-wrapper .nav-link.active {
-    color: #ffffff !important;
-    background-color: rgba(255, 255, 255, 0.12) !important;
-    box-shadow: none;
+    color: var(--text-main) !important;
+    background-color: rgba(0, 0, 0, 0.06) !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
 }
 
 /* Micro-animation when clicked (feedback) */
@@ -130,7 +133,7 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     background-color: rgba(239, 68, 68, 0.08) !important;
 }
 
-/* Floating Logo Toggle Button */
+/* Floating Logo Toggle Button - Gorgeous Dark Gradient + Neon color */
 #sidebar-logo-container {
     position: absolute;
     top: 24px;
@@ -139,15 +142,42 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     height: 38px;
     z-index: 1050;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    background: linear-gradient(135deg, #1C1E21 0%, #343A40 100%) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(212, 249, 83, 0.25);
+    border: 1px solid rgba(212, 249, 83, 0.2);
 }
 
 #sidebar-logo-container:hover {
-    transform: scale(1.05);
+    transform: scale(1.08) rotate(-5deg);
+    box-shadow: 0 6px 18px rgba(212, 249, 83, 0.4);
 }
 
 #sidebar-logo-container:active {
     transform: scale(0.95);
+}
+
+#sidebar-logo-container div {
+    background: transparent !important;
+    color: var(--neon) !important;
+    font-weight: 800 !important;
+    font-size: 1.15rem !important;
+}
+
+/* Profile / Avatar at bottom of sidebar */
+#sidebar-wrapper .rounded-circle {
+    border: 2px solid white !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+    background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 99%, #FECFEF 100%) !important;
+    color: #FFFFFF !important;
+}
+
+#sidebar-wrapper .rounded-circle:hover {
+    transform: scale(1.08);
+    border-color: var(--neon) !important;
+    box-shadow: 0 4px 12px rgba(212, 249, 83, 0.3);
 }
 
 /* Hide navigation label text to keep it ultra-minimalist */
@@ -173,7 +203,7 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-card);
     border: 1px solid var(--border-color);
     min-width: 0;
 }
@@ -195,17 +225,18 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
 }
 
 /* Cards Sizing */
-.card {
+.card, .premium-panel, .premium-card {
     background-color: var(--surface);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s ease;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     margin-bottom: 12px;
 }
 
-.card:hover {
-    box-shadow: var(--shadow-md);
+.card:hover, .premium-panel:hover, .premium-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 45px -10px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.01);
 }
 
 .card-header {
@@ -218,13 +249,13 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     padding: 14px 16px;
 }
 
-/* Compact Forms overrides */
+/* Compact Forms overrides matching the new theme */
 .form-control, .form-select {
     font-size: 0.8rem;
     padding: 6px 10px;
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    background-color: #fcfcfd;
+    border-radius: var(--radius-md);
+    background-color: #ffffff;
     color: var(--text-main);
     box-shadow: inset 0 1px 2px rgba(0,0,0,0.01);
     transition: all 0.2s ease;
@@ -233,7 +264,7 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
 
 .form-control:focus, .form-select:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.05);
+    box-shadow: 0 0 0 3px rgba(28, 30, 33, 0.05);
     background-color: var(--surface);
     outline: none;
 }
@@ -245,41 +276,45 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     margin-bottom: 3px;
 }
 
-/* Compact Pill Buttons */
+/* Compact Pill Buttons using the Neon Accent color */
 .btn {
     font-size: 0.775rem;
-    font-weight: 500;
-    padding: 6px 12px;
+    font-weight: 600;
+    padding: 6px 14px;
     border-radius: var(--radius-pill);
-    transition: all 0.15s ease;
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border: 1px solid transparent;
 }
 
 .btn-primary {
-    background-color: var(--primary);
-    border-color: var(--primary);
-    color: #ffffff;
+    background-color: var(--neon) !important;
+    border-color: var(--neon) !important;
+    color: var(--text-main) !important;
+    box-shadow: 0 4px 12px rgba(212, 249, 83, 0.25);
 }
 
 .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-    background-color: var(--primary-hover) !important;
-    border-color: var(--primary-hover) !important;
-    transform: translateY(-0.5px);
+    background-color: var(--neon-hover) !important;
+    border-color: var(--neon-hover) !important;
+    color: var(--text-main) !important;
+    box-shadow: 0 6px 18px rgba(212, 249, 83, 0.4);
+    transform: translateY(-1px);
 }
 
 .btn-secondary, .btn-light {
-    background-color: #f4f4f5;
+    background-color: #ffffff;
     border: 1px solid var(--border-color);
     color: var(--text-main);
 }
 
 .btn-secondary:hover, .btn-light:hover {
-    background-color: #e4e4e7 !important;
+    background-color: #fafafa !important;
     border-color: var(--border-color) !important;
     color: var(--text-main) !important;
-    transform: translateY(-0.5px);
+    transform: translateY(-1px);
 }
 
 .btn-outline-primary {
@@ -289,7 +324,7 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
 }
 
 .btn-outline-primary:hover {
-    background-color: #f4f4f5 !important;
+    background-color: rgba(0, 0, 0, 0.04) !important;
     border-color: var(--primary) !important;
     color: var(--primary) !important;
 }
@@ -297,7 +332,7 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
 /* Badges */
 .badge {
     padding: 4px 8px;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 0.7rem;
     border-radius: var(--radius-pill);
 }
