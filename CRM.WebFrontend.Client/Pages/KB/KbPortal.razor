@@ -1,0 +1,263 @@
+@page "/kb"
+@using CRM.WebFrontend.Client.Models
+@using CRM.WebFrontend.Client.Services
+@using MudBlazor
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IKbService KbService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavManager
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h3" Align="Align.Center" Class="mb-8 fw-bold">Portal de Base de Conocimientos</MudText>
+
+    <!-- Search Bar -->
+    <MudPaper Elevation="3" Class="pa-6 mb-8" Style="border-radius: 12px;">
+        <MudTextField Value="searchQuery" 
+                      ValueChanged="EventCallback.Factory.Create<string>(this, OnSearchQueryChanged)"
+                      Placeholder="Busca artículos, procedimientos, scripts..."
+                      Adornment="Adornment.Start" 
+                      AdornmentIcon="@Icons.Material.Filled.Search" 
+                      IconSize="Size.Large"
+                      OnKeyDown="@HandleSearch"
+                      Immediate="true"
+                      Variant="Variant.Outlined" 
+                      Margin="Margin.Dense"
+                      Clearable="true"
+                      Class="kb-search-bar" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4 w-100" OnClick="@(async () => await PerformSearch())">Buscar</MudButton>
+    </MudPaper>
+
+    <!-- Recent Searches -->
+    @if (recentSearches.Any() && !isSearching && string.IsNullOrWhiteSpace(searchQuery))
+    {
+        <div class="mb-8">
+            <MudText Typo="Typo.subtitle1" Class="mb-2 fw-bold text-muted">Búsquedas recientes</MudText>
+            <div class="d-flex gap-2 flex-wrap">
+                @foreach (var search in recentSearches)
+                {
+                    <MudChip T="string" Icon="@Icons.Material.Filled.History" OnClick="@(async () => await ExecuteRecentSearch(search))">@search</MudChip>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Categories Grid (Only show when not searching) -->
+    @if (!hasSearched)
+    {
+        <MudGrid Spacing="3">
+            @foreach (var cat in categories)
+            {
+                <MudItem xs="12" sm="6" md="3">
+                    <MudCard Class="category-card cursor-pointer" @onclick="@(async () => await FilterByCategory(cat.Type))">
+                        <MudCardContent Class="d-flex flex-column align-items-center text-center">
+                            <MudIcon Icon="@cat.Icon" Size="Size.Large" Color="Color.Primary" Class="mb-4" />
+                            <MudText Typo="Typo.h6">@cat.Name</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@cat.Description</MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
+    <!-- Search Results -->
+    @if (isSearching)
+    {
+        <div class="d-flex justify-content-center my-8">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (hasSearched)
+    {
+        <MudText Typo="Typo.h6" Class="mb-4">Resultados de búsqueda (@searchResults.Count)</MudText>
+        
+        @if (searchResults.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info">No se encontraron artículos que coincidan con tu búsqueda.</MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="2">
+                @foreach (var article in searchResults)
+                {
+                    <MudItem xs="12">
+                        <MudCard Class="cursor-pointer hover-card" @onclick="@( () => NavigateToArticle(article.IdArticle) )">
+                            <MudCardContent>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">@article.Title</MudText>
+                                    <MudChip T="string" Size="Size.Small" Color="GetChipColor(article.ContentType)">@article.ContentType</MudChip>
+                                </div>
+                                <MudText Typo="Typo.body2" Class="text-muted">@article.Summary</MudText>
+                                <div class="d-flex gap-4 mt-3 text-muted" style="font-size: 0.85rem;">
+                                    <span><MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Class="mr-1" style="vertical-align: sub;"/> @article.ViewCount vistas</span>
+                                    <span><MudIcon Icon="@Icons.Material.Filled.ThumbUp" Size="Size.Small" Class="mr-1" style="vertical-align: sub;"/> @article.HelpfulCount útiles</span>
+                                </div>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    }
+</MudContainer>
+
+<style>
+    .category-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+        transition: all 0.3s ease;
+    }
+    .hover-card:hover {
+        background-color: #f8f9fa;
+        transition: background-color 0.2s ease;
+    }
+</style>
+
+@code {
+    private string searchQuery = string.Empty;
+    private bool isSearching = false;
+    private bool hasSearched = false;
+    private List<KbArticleResponseDto> searchResults = new();
+
+    private void OnSearchQueryChanged(string text)
+    {
+        searchQuery = text;
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            hasSearched = false;
+            searchResults.Clear();
+        }
+    }
+    private List<string> recentSearches = new();
+    private string storageKey = "kb_recent_searches";
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var username = authState.User.Identity?.Name ?? "default";
+        storageKey = $"kb_recent_searches_{username}";
+    }
+
+    private class CategoryInfo
+    {
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Icon { get; set; } = "";
+    }
+
+    private List<CategoryInfo> categories = new()
+    {
+        new CategoryInfo { Name = "Procedimientos", Type = "PROCEDURE", Description = "Guías paso a paso operativas", Icon = Icons.Material.Filled.MenuBook },
+        new CategoryInfo { Name = "FAQs", Type = "FAQ", Description = "Preguntas frecuentes resueltas", Icon = Icons.Material.Filled.QuestionAnswer },
+        new CategoryInfo { Name = "Scripts", Type = "SCRIPT", Description = "Textos y guiones para llamadas", Icon = Icons.Material.Filled.RecordVoiceOver },
+        new CategoryInfo { Name = "Textos Legales", Type = "LEGAL", Description = "Documentos de cumplimiento y legales", Icon = Icons.Material.Filled.Gavel }
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadRecentSearches();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadRecentSearches()
+    {
+        try
+        {
+            var storedStr = await JSRuntime.InvokeAsync<string>("localStorage.getItem", storageKey);
+            if (!string.IsNullOrEmpty(storedStr))
+            {
+                recentSearches = System.Text.Json.JsonSerializer.Deserialize<List<string>>(storedStr) ?? new();
+            }
+        }
+        catch { /* Ignore */ }
+    }
+
+    private async Task SaveRecentSearch(string query)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return;
+        
+        recentSearches.RemoveAll(x => x.Equals(query, StringComparison.OrdinalIgnoreCase));
+        recentSearches.Insert(0, query);
+        
+        if (recentSearches.Count > 5)
+            recentSearches = recentSearches.Take(5).ToList();
+
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(recentSearches);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", storageKey, json);
+        }
+        catch { /* Ignore */ }
+    }
+
+    private async Task HandleSearch(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await PerformSearch();
+        }
+    }
+
+    private async Task PerformSearch(string? typeFilter = null)
+    {
+        isSearching = true;
+        hasSearched = true;
+        StateHasChanged();
+
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            await SaveRecentSearch(searchQuery);
+        }
+
+        try 
+        {
+            searchResults = await KbService.SearchAsync(searchQuery, typeFilter);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally 
+        {
+            isSearching = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExecuteRecentSearch(string query)
+    {
+        searchQuery = query;
+        await PerformSearch();
+    }
+
+    private async Task FilterByCategory(string type)
+    {
+        searchQuery = "";
+        await PerformSearch(typeFilter: type);
+    }
+
+    private void NavigateToArticle(long id)
+    {
+        NavManager.NavigateTo($"/kb/{id}");
+    }
+
+    private Color GetChipColor(string type)
+    {
+        return type switch
+        {
+            "Procedimiento" => Color.Info,
+            "FAQ" => Color.Success,
+            "Script" => Color.Warning,
+            "Texto Legal" => Color.Error,
+            _ => Color.Default
+        };
+    }
+}
