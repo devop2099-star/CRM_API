@@ -98,7 +98,7 @@ public class ActivationRepository : IActivationRepository
         using var connection = _connectionFactory.CreateConnection();
         // Return activations where the status is PENDING/DELAYED and expected_activation_date has already passed CURRENT_DATE
         var sql = @$"{SelectColumnsSql} 
-            WHERE activation_status NOT IN ('ACTIVE', 'COMPLETED', 'CANCELLED') 
+            WHERE activation_status NOT IN ('ACTIVATED', 'COMPLETED', 'CANCELLED') 
               AND expected_activation_date < CURRENT_DATE 
             ORDER BY expected_activation_date ASC;";
 
