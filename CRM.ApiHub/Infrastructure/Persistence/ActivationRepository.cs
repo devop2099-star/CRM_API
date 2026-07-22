@@ -49,7 +49,7 @@ public class ActivationRepository : IActivationRepository
     public async Task<IEnumerable<ProductActivationTracking>> GetPendingActivationsAsync(long idProvider, CancellationToken ct = default)
     {
         using var connection = _connectionFactory.CreateConnection();
-        var sql = $"{SelectColumnsSql} WHERE id_provider = @IdProvider AND activation_status = 'PENDING' ORDER BY expected_activation_date ASC;";
+        var sql = $"{SelectColumnsSql} WHERE id_provider = @IdProvider ORDER BY expected_activation_date ASC;";
 
         return await connection.QueryAsync<ProductActivationTracking>(
             new CommandDefinition(sql, new { IdProvider = idProvider }, cancellationToken: ct)
@@ -98,7 +98,7 @@ public class ActivationRepository : IActivationRepository
         using var connection = _connectionFactory.CreateConnection();
         // Return activations where the status is PENDING/DELAYED and expected_activation_date has already passed CURRENT_DATE
         var sql = @$"{SelectColumnsSql} 
-            WHERE activation_status NOT IN ('ACTIVE', 'COMPLETED', 'CANCELLED') 
+            WHERE activation_status NOT IN ('ACTIVATED', 'COMPLETED', 'CANCELLED') 
               AND expected_activation_date < CURRENT_DATE 
             ORDER BY expected_activation_date ASC;";
 
