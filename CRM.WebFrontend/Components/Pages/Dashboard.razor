@@ -151,11 +151,19 @@
 </style>
 
 <div class="container-fluid py-4 px-md-4" style="max-width: 1600px;">
-    <div class="d-flex align-items-center mb-4">
-        <h3 class="fw-bold mb-0" style="color: var(--accent); letter-spacing: -0.5px;">BackOffice</h3>
-        <span class="mx-3 text-muted">/</span>
-        <span class="text-muted fs-5">Verificación de Documentos</span>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center">
+            <h3 class="fw-bold mb-0" style="color: var(--accent); letter-spacing: -0.5px;">BackOffice</h3>
+            <span class="mx-3 text-muted">/</span>
+            <span class="text-muted fs-5">Verificación de Documentos</span>
+        </div>
+        <div>
+            <a href="/backoffice/activations" class="btn btn-dark rounded-pill px-4 py-2 fw-semibold shadow-sm">
+                ⚡ Panel Visual de Activaciones
+            </a>
+        </div>
     </div>
+
 
     @if (_isLoading)
     {
