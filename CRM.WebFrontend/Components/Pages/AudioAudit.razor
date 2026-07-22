@@ -5,6 +5,8 @@
 @using System.Timers
 @implements IDisposable
 @inject ISalesOrderService SalesOrderService
+@inject IAuditService AuditService
+@inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject ISnackbar Snackbar
@@ -188,38 +190,71 @@
             </div>
         </div>
 
-        <!-- Reproductor de Audio Simulado Premium -->
+        <!-- Reproductor de Audio Contractual -->
         <div class="premium-panel mb-4">
-            <h4 class="fw-bold mb-3" style="font-size: 1.05rem;">Grabación de Audio Contractual</h4>
-            <div class="d-flex align-items-center gap-3 p-3 rounded border" style="background: #fafafa;">
-                <button class="btn btn-dark d-flex align-items-center justify-content-center" 
-                        style="width: 44px; height: 44px; border-radius: 50%; border: none; outline: none; cursor: pointer;" 
-                        @onclick="TogglePlay">
-                    @if (_isPlaying)
-                    {
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                    }
-                    else
-                    {
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                    }
-                </button>
-                <div class="d-flex flex-column flex-grow-1 gap-1">
-                    <div class="d-flex align-items-center justify-content-between text-muted" style="font-size: 0.75rem;">
-                        <span>@FormatTime(_currentTimeSeconds)</span>
-                        <span>04:32</span>
-                    </div>
-                    <div class="position-relative" style="height: 6px; background: #e4e4e7; border-radius: 3px; cursor: pointer;" @onclick="SeekAudio">
-                        <div style="width: @(_playbackPercent)%; height: 100%; background: #09090b; border-radius: 3px; transition: width 0.1s linear;"></div>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h4 class="fw-bold m-0" style="font-size: 1.05rem;">Grabación de Audio Contractual</h4>
+                @if (!string.IsNullOrEmpty(_audioTitle))
+                {
+                    <span class="badge @(_isFallbackAudio ? "bg-warning text-dark" : "bg-success text-white")" style="font-size: 0.75rem; padding: 6px 12px; border-radius: 20px;">
+                        @(_isFallbackAudio ? "⚠️ Audio de Prueba" : $"🎵 {_audioTitle}")
+                    </span>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(_audioUrl))
+            {
+                <audio id="audio-element" src="@_audioUrl" preload="metadata" style="display: none;"></audio>
+                
+                <div class="d-flex align-items-center gap-3 p-3 rounded border" style="background: #fafafa;">
+                    <button class="btn btn-dark d-flex align-items-center justify-content-center" 
+                            style="width: 44px; height: 44px; border-radius: 50%; border: none; outline: none; cursor: pointer;" 
+                            @onclick="TogglePlay">
+                        @if (_isPlaying)
+                        {
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                        }
+                        else
+                        {
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        }
+                    </button>
+                    <div class="d-flex flex-column flex-grow-1 gap-1">
+                        <div class="d-flex align-items-center justify-content-between text-muted" style="font-size: 0.75rem;">
+                            <span>@FormatTime(_currentTimeSeconds)</span>
+                            <span>@FormatTime(_durationSeconds)</span>
+                        </div>
+                        <div id="audio-progress-bar" class="position-relative" style="height: 6px; background: #e4e4e7; border-radius: 3px; cursor: pointer;" @onclick="SeekAudio">
+                            <div style="width: @(_playbackPercent)%; height: 100%; background: #09090b; border-radius: 3px; transition: width 0.1s linear;"></div>
+                        </div>
                     </div>
                 </div>
-            </div>
+
+                @if (_isFallbackAudio)
+                {
+                    <div class="text-muted mt-2" style="font-size: 0.75rem; font-style: italic;">
+                        * No se encontró grabación asociada a la orden en los documentos. Usando audio de contingencia para demostración.
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-secondary m-0" role="alert" style="font-size: 0.85rem;">
+                    No hay grabación de audio disponible ni plantilla de prueba configurada para esta orden.
+                </div>
+            }
         </div>
 
         <!-- Checklist de Items -->
         <div class="premium-panel mb-4">
             <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
-                <h4 class="fw-bold m-0" style="font-size: 1.05rem;">Checklist de Control de Calidad</h4>
+                <div>
+                    <h4 class="fw-bold m-0" style="font-size: 1.05rem;">Checklist de Control de Calidad</h4>
+                    @if (_checklistTemplate != null)
+                    {
+                        <span class="text-muted" style="font-size: 0.75rem;">Plantilla: @_checklistTemplate.Name (v@_checklistTemplate.Version)</span>
+                    }
+                </div>
                 <span class="text-muted" style="font-size: 0.85rem;">Marcados: @_markedCount de @_checklist.Count</span>
             </div>
 
@@ -238,10 +273,16 @@
                         @foreach (var item in _checklist)
                         {
                             <tr>
-                                <td class="fw-bold text-muted">@item.Id</td>
+                                <td class="fw-bold text-muted">@item.OrderIndex</td>
                                 <td>
-                                    <div class="fw-medium">@item.Question</div>
-                                    <span class="badge bg-light text-muted border rounded-pill mt-1" style="font-size: 0.65rem;">@item.Category</span>
+                                    <div class="fw-medium">@item.Description</div>
+                                    <div class="d-flex gap-2 mt-1">
+                                        <span class="badge bg-light text-muted border rounded-pill" style="font-size: 0.65rem;">@item.ItemType</span>
+                                        @if (item.IsCritical)
+                                        {
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-30 rounded-pill" style="font-size: 0.65rem;">⚠️ CRÍTICO</span>
+                                        }
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="btn-status-group justify-content-center">
@@ -282,7 +323,7 @@
                 <div class="alert alert-warning border border-warning border-opacity-30 rounded-lg d-flex align-items-center gap-2 mt-3" role="alert">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                     <div style="font-size: 0.85rem;">
-                        <strong>Atención:</strong> Tienes al menos un ítem evaluado como <strong>KO</strong>. El resultado global final será guardado automáticamente como <strong>RECHAZADO</strong>.
+                        <strong>Atención:</strong> Tienes al menos un ítem evaluado como <strong>KO</strong>. La auditoría se cerrará como <strong>RECHAZADA</strong> (@(_checklist.Any(i => i.Result == "KO" && i.IsCritical) ? "KO_CRITICAL" : "KO_MINOR")).
                     </div>
                 </div>
             }
@@ -320,7 +361,14 @@
                     <span class="text-muted d-block mb-1" style="font-size: 0.85rem;">RESULTADO GLOBAL PROPUESTO</span>
                     @if (_hasKo)
                     {
-                        <span class="badge bg-danger text-white rounded-pill px-4 py-2 fs-5 fw-bold">RECHAZADA</span>
+                        @if (_checklist.Any(i => i.Result == "KO" && i.IsCritical))
+                        {
+                            <span class="badge bg-danger text-white rounded-pill px-4 py-2 fs-5 fw-bold">RECHAZADA (KO CRÍTICO)</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning text-dark rounded-pill px-4 py-2 fs-5 fw-bold">RECHAZADA (KO MENOR)</span>
+                        }
                     }
                     else
                     {
@@ -377,27 +425,27 @@
 
     // SLA State
     private string _slaStatusText = "Dentro de SLA";
+    
+    // Audio Player State
     private int _currentTimeSeconds = 0;
+    private int _durationSeconds = 272; // fallback total 4:32
     private bool _isPlaying = false;
     private Timer? _audioTimer;
-    private double _playbackPercent => (_currentTimeSeconds / 272.0) * 100; // Total 4:32 (272 seconds)
+    private double _playbackPercent => _durationSeconds > 0 ? (_currentTimeSeconds / (double)_durationSeconds) * 100 : 0;
+    private string? _audioUrl;
+    private string? _audioTitle;
+    private bool _isFallbackAudio = false;
 
     // Checklist State
-    private List<AuditChecklistItem> _checklist = new()
-    {
-        new() { Id = 1, Question = "Identidad del cliente verificada mediante DNI/NIE y datos personales de contacto.", Category = "Identidad" },
-        new() { Id = 2, Question = "Explicación clara del servicio contratado, precio final y desglose de impuestos.", Category = "Oferta" },
-        new() { Id = 3, Question = "Lectura completa de las cláusulas de permanencia y penalizaciones por cancelación anticipada.", Category = "Legales" },
-        new() { Id = 4, Question = "Grabación de consentimiento expreso e inequívoco del titular para la contratación del servicio.", Category = "Consentimiento" },
-        new() { Id = 5, Question = "Verificación de la cuenta bancaria (IBAN) y autorización para cargo de recibos.", Category = "Pago" }
-    };
+    private AuditChecklistViewModel? _checklistTemplate;
+    private List<AuditChecklistItemViewModel> _checklist = new();
 
     private int _markedCount => _checklist.Count(item => !string.IsNullOrEmpty(item.Result));
     private int _okCount => _checklist.Count(item => item.Result == "OK");
     private int _koCount => _checklist.Count(item => item.Result == "KO");
     private int _naCount => _checklist.Count(item => item.Result == "N/A");
     private bool _hasKo => _koCount > 0;
-    private bool IsChecklistComplete => _markedCount == _checklist.Count;
+    private bool IsChecklistComplete => _checklist.Count > 0 && _markedCount == _checklist.Count;
 
     // Modal state
     private bool _showPreviewModal = false;
@@ -412,6 +460,62 @@
             if (_order != null)
             {
                 CalculateSla();
+                
+                // Load actual audio documents for the order
+                try
+                {
+                    var docs = await SalesOrderService.GetDocumentsByOrderAsync(idOrder);
+                    var audioDoc = docs?.FirstOrDefault(d => 
+                        string.Equals(d.DocumentType, "AUDIO", StringComparison.OrdinalIgnoreCase) || 
+                        string.Equals(d.DocumentType, "GRABACION", StringComparison.OrdinalIgnoreCase) ||
+                        d.FileName.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
+                        d.FileName.EndsWith(".wav", StringComparison.OrdinalIgnoreCase) ||
+                        d.FileName.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase)
+                    );
+
+                    if (audioDoc != null)
+                    {
+                        _audioUrl = $"/api/documents/{audioDoc.IdDocument}/download";
+                        _audioTitle = audioDoc.FileName;
+                        _isFallbackAudio = false;
+                    }
+                    else
+                    {
+                        // Fallback to testing audio
+                        _audioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+                        _audioTitle = "Grabación de Contingencia";
+                        _isFallbackAudio = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error retrieving documents: {ex.Message}");
+                    _audioUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+                    _audioTitle = "Grabación de Contingencia";
+                    _isFallbackAudio = true;
+                }
+
+                // Load Campaign Checklist Template
+                try
+                {
+                    _checklistTemplate = await AuditService.GetChecklistAsync(_order.IdCmpg);
+                    if (_checklistTemplate != null && _checklistTemplate.Items != null && _checklistTemplate.Items.Count > 0)
+                    {
+                        _checklist = _checklistTemplate.Items;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"No active checklist template found in DB for campaign {_order.IdCmpg}. Using fallback.");
+                        LoadFallbackChecklist();
+                        Snackbar.Add("No se encontró checklist en BD. Usando plantilla de contingencia.", Severity.Info);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading checklist: {ex.Message}");
+                    LoadFallbackChecklist();
+                    Snackbar.Add("Error al cargar checklist de BD. Usando contingencia.", Severity.Warning);
+                }
             }
         }
         catch (Exception ex)
@@ -423,9 +527,29 @@
             _isLoading = false;
         }
 
-        // Timer para la simulación del audio
+        // Initialize audio progress poll timer
         _audioTimer = new Timer(1000);
         _audioTimer.Elapsed += OnAudioTick;
+    }
+
+    private void LoadFallbackChecklist()
+    {
+        _checklist = new()
+        {
+            new() { IdItem = 1, OrderIndex = 1, Description = "Identidad del cliente verificada mediante DNI/NIE y datos personales de contacto.", ItemType = "Identidad", IsCritical = true },
+            new() { IdItem = 2, OrderIndex = 2, Description = "Explicación clara del servicio contratado, precio final y desglose de impuestos.", ItemType = "Oferta", IsCritical = true },
+            new() { IdItem = 3, OrderIndex = 3, Description = "Lectura completa de las cláusulas de permanencia y penalizaciones por cancelación anticipada.", ItemType = "Legales", IsCritical = false },
+            new() { IdItem = 4, OrderIndex = 4, Description = "Grabación de consentimiento expreso e inequívoco del titular para la contratación del servicio.", ItemType = "Consentimiento", IsCritical = true },
+            new() { IdItem = 5, OrderIndex = 5, Description = "Verificación de la cuenta bancaria (IBAN) y autorización para cargo de recibos.", ItemType = "Pago", IsCritical = false }
+        };
+        _checklistTemplate = new AuditChecklistViewModel
+        {
+            IdChecklist = 1,
+            IdCmpg = _order?.IdCmpg ?? 1,
+            Name = "Plantilla Contingencia (Mock)",
+            Version = "1.0",
+            Items = _checklist
+        };
     }
 
     private void CalculateSla()
@@ -458,7 +582,7 @@
         };
     }
 
-    private void SetResult(AuditChecklistItem item, string result)
+    private void SetResult(AuditChecklistItemViewModel item, string result)
     {
         item.Result = result;
         if (result != "KO")
@@ -468,27 +592,29 @@
         StateHasChanged();
     }
 
-    private void TogglePlay()
+    private async Task TogglePlay()
     {
         _isPlaying = !_isPlaying;
         if (_isPlaying)
         {
             _audioTimer?.Start();
+            await JSRuntime.InvokeVoidAsync("audioPlayer.play", "audio-element");
         }
         else
         {
             _audioTimer?.Stop();
+            await JSRuntime.InvokeVoidAsync("audioPlayer.pause", "audio-element");
         }
     }
 
-    private void SeekAudio(MouseEventArgs e)
+    private async Task SeekAudio(MouseEventArgs e)
     {
-        // Posicionar el audio de forma básica usando coordenadas simuladas
-        _currentTimeSeconds = (int)(272 * 0.5); // Avanzar a la mitad del audio como ejemplo simple
+        var newTime = await JSRuntime.InvokeAsync<double>("audioPlayer.seekToPercent", "audio-element", e.ClientX, "audio-progress-bar");
+        _currentTimeSeconds = (int)newTime;
         StateHasChanged();
     }
 
-    private void CopyCurrentTimestamp(AuditChecklistItem item)
+    private void CopyCurrentTimestamp(AuditChecklistItemViewModel item)
     {
         item.Timestamp = FormatTime(_currentTimeSeconds);
         StateHasChanged();
@@ -501,18 +627,31 @@
         return $"{minutes:D2}:{remainingSeconds:D2}";
     }
 
-    private void OnAudioTick(object? sender, ElapsedEventArgs e)
+    private async void OnAudioTick(object? sender, ElapsedEventArgs e)
     {
-        if (_currentTimeSeconds < 272)
+        try
         {
-            _currentTimeSeconds++;
-            InvokeAsync(StateHasChanged);
+            var cur = await JSRuntime.InvokeAsync<double>("audioPlayer.getCurrentTime", "audio-element");
+            var dur = await JSRuntime.InvokeAsync<double>("audioPlayer.getDuration", "audio-element");
+            
+            _currentTimeSeconds = (int)cur;
+            if (dur > 0)
+            {
+                _durationSeconds = (int)dur;
+            }
+
+            if (_currentTimeSeconds >= _durationSeconds && _isPlaying)
+            {
+                _isPlaying = false;
+                _audioTimer?.Stop();
+                await JSRuntime.InvokeVoidAsync("audioPlayer.pause", "audio-element");
+            }
+
+            await InvokeAsync(StateHasChanged);
         }
-        else
+        catch
         {
-            _isPlaying = false;
-            _audioTimer?.Stop();
-            InvokeAsync(StateHasChanged);
+            // Ignore JS exceptions on page exit / refresh
         }
     }
 
@@ -539,15 +678,38 @@
         _isSaving = true;
         try
         {
-            // Simulación del guardado en base de datos.
-            // Esto cumple con el plan mockeando el backend bloqueador por ahora.
-            await Task.Delay(1500);
-            
-            var globalRes = _hasKo ? "RECHAZADA" : "APROBADA";
-            Snackbar.Add($"Auditoría guardada exitosamente. Resultado global: {globalRes}.", Severity.Success);
-            
-            _showPreviewModal = false;
-            NavigationManager.NavigateTo("/backoffice/dashboard");
+            if (_checklistTemplate == null)
+            {
+                Snackbar.Add("No hay un checklist activo para guardar.", Severity.Error);
+                return;
+            }
+
+            // 1. Create audit session in database
+            var idAudit = await AuditService.CreateAuditAsync(idOrder, _checklistTemplate.IdChecklist);
+
+            // 2. Save each checklist item evaluation
+            foreach (var item in _checklist)
+            {
+                await AuditService.SaveItemAsync(idAudit, item.IdItem, item.Result, item.Observation, item.Timestamp);
+            }
+
+            // 3. Determine overall status
+            var finalStatus = _hasKo 
+                ? (_checklist.Any(item => item.Result == "KO" && item.IsCritical) ? "KO_CRITICAL" : "KO_MINOR")
+                : "APROBADA";
+
+            // 4. Close audit to trigger status change and incidents logic
+            var closeSuccess = await AuditService.CloseAuditAsync(idAudit, finalStatus);
+            if (closeSuccess)
+            {
+                Snackbar.Add($"Auditoría guardada exitosamente. Resultado global: {finalStatus}.", Severity.Success);
+                _showPreviewModal = false;
+                NavigationManager.NavigateTo("/backoffice/dashboard");
+            }
+            else
+            {
+                Snackbar.Add("Error al cerrar la auditoría en el servidor.", Severity.Error);
+            }
         }
         catch (Exception ex)
         {
@@ -562,15 +724,5 @@
     public void Dispose()
     {
         _audioTimer?.Dispose();
-    }
-
-    public class AuditChecklistItem
-    {
-        public int Id { get; set; }
-        public string Question { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
-        public string Result { get; set; } = string.Empty;
-        public string Timestamp { get; set; } = string.Empty;
-        public string Observation { get; set; } = string.Empty;
     }
 }

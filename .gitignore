@@ -25,5 +25,7 @@ design_ideas/
 # Agent configuration and data
 .agent/
 .agents/
+scratch/
+
 
 
