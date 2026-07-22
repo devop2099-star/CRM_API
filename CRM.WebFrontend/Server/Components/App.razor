@@ -7,7 +7,12 @@
     <base href="/" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <!-- Importar la tipografía Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["css/dashboard.css"]" />
     <link rel="stylesheet" href="@Assets["CRM.WebFrontend.styles.css"]" />
     
     <!-- MudBlazor Styles & Fonts -->
@@ -35,6 +40,47 @@
                 }
             }
         });
+
+        window.audioPlayer = {
+            play: function(id) {
+                var audio = document.getElementById(id);
+                if (audio) {
+                    audio.play().catch(function(err) {
+                        console.warn("Playback prevented or failed:", err);
+                    });
+                }
+            },
+            pause: function(id) {
+                var audio = document.getElementById(id);
+                if (audio) audio.pause();
+            },
+            setCurrentTime: function(id, seconds) {
+                var audio = document.getElementById(id);
+                if (audio) audio.currentTime = seconds;
+            },
+            getCurrentTime: function(id) {
+                var audio = document.getElementById(id);
+                return audio ? audio.currentTime || 0 : 0;
+            },
+            getDuration: function(id) {
+                var audio = document.getElementById(id);
+                return audio ? audio.duration || 0 : 0;
+            },
+            seekToPercent: function(id, clientX, progressBarId) {
+                var audio = document.getElementById(id);
+                var bar = document.getElementById(progressBarId);
+                if (audio && bar && audio.duration) {
+                    var rect = bar.getBoundingClientRect();
+                    var offsetX = clientX - rect.left;
+                    var percent = offsetX / rect.width;
+                    if (percent < 0) percent = 0;
+                    if (percent > 1) percent = 1;
+                    audio.currentTime = percent * audio.duration;
+                    return audio.currentTime;
+                }
+                return 0;
+            }
+        };
     </script>
 </body>
 

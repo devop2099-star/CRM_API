@@ -68,6 +68,10 @@ public class DocumentController : ControllerBase
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
 
+        if (uploadedBy == -999) uploadedBy = 101;
+        else if (uploadedBy == -1000) uploadedBy = 237;
+        else if (uploadedBy == -998) uploadedBy = 9;
+
         try
         {
             var originalFileName = dto.File.FileName;
@@ -109,6 +113,10 @@ public class DocumentController : ControllerBase
         {
             return Unauthorized(new { message = "Usuario no autorizado." });
         }
+
+        if (verifiedBy == -999) verifiedBy = 101;
+        else if (verifiedBy == -1000) verifiedBy = 237;
+        else if (verifiedBy == -998) verifiedBy = 9;
 
         try
         {
