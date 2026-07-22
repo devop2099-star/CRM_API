@@ -1,0 +1,263 @@
+@page "/backoffice/activations"
+@rendermode InteractiveServer
+@using CRM.WebFrontend.Client.Models
+@using CRM.WebFrontend.Client.Services
+@inject IActivationService ActivationService
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "BACKOFFICE")]
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark mb-0">✨ Panel de Activaciones</h2>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-muted small">Filtrar por Proveedor</label>
+                    <select class="form-select form-select-lg" @bind="selectedProviderIdStr">
+                        @foreach(var provider in providers)
+                        {
+                            <option value="@provider.IdProvider">@provider.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-primary btn-lg w-100" @onclick="LoadActivations">
+                        <i class="bi bi-search me-2"></i>Buscar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="text-muted mt-3">Cargando activaciones pendientes...</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-muted fw-bold ps-4"># Tracking</th>
+                            <th class="text-muted fw-bold">Producto / Proveedor</th>
+                            <th class="text-muted fw-bold">Fecha Esperada</th>
+                            <th class="text-muted fw-bold">Estado</th>
+                            <th class="text-muted fw-bold text-center pe-4">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (activations != null && activations.Any())
+                        {
+                            @foreach (var act in activations)
+                            {
+                                bool isDelayed = act.ActivationStatus != "ACTIVE" && act.ActivationStatus != "COMPLETED" && act.ExpectedActivationDate.HasValue && act.ExpectedActivationDate.Value.Date < DateTime.Today;
+
+                                <tr>
+                                    <td class="ps-4">
+                                        <span class="fw-bold text-secondary">@act.IdTracking</span>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-dark">@act.ProductName</div>
+                                        <div class="small text-muted">
+                                            <i class="bi bi-shop me-1"></i> 
+                                            @(providers.FirstOrDefault(p => p.IdProvider == act.IdProvider)?.Name ?? "Desconocido")
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if(act.ExpectedActivationDate.HasValue)
+                                        {
+                                            <span class="@((isDelayed ? "text-danger fw-bold" : "text-dark"))">
+                                                <i class="bi bi-calendar-event me-1"></i>
+                                                @act.ExpectedActivationDate.Value.ToString("dd MMM yyyy")
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (act.ActivationStatus == "ACTIVE")
+                                        {
+                                            <span class="badge rounded-pill bg-success-subtle text-success border border-success px-3 py-2">
+                                                <i class="bi bi-check-circle-fill me-1"></i> ACTIVADO
+                                            </span>
+                                        }
+                                        else if (act.ActivationStatus == "COMPLETED")
+                                        {
+                                            <span class="badge rounded-pill bg-info-subtle text-info border border-info px-3 py-2">
+                                                <i class="bi bi-check-all me-1"></i> COMPLETADO
+                                            </span>
+                                        }
+                                        else if (act.ActivationStatus == "CANCELLED")
+                                        {
+                                            <span class="badge rounded-pill bg-secondary-subtle text-secondary border border-secondary px-3 py-2">
+                                                <i class="bi bi-x-circle-fill me-1"></i> CANCELADO
+                                            </span>
+                                        }
+                                        else if (isDelayed)
+                                        {
+                                            <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger px-3 py-2">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i> RETRASADO
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge rounded-pill bg-warning-subtle text-warning border border-warning px-3 py-2">
+                                                <i class="bi bi-hourglass-split me-1"></i> PENDIENTE
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-center pe-4">
+                                        @if (act.ActivationStatus == "PENDING" || string.IsNullOrEmpty(act.ActivationStatus))
+                                        {
+                                            <button class="btn btn-sm btn-outline-success rounded-pill px-3" 
+                                                    @onclick="() => OpenActivationModal(act)">
+                                                <i class="bi bi-check-circle me-1"></i> Activar
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" disabled>
+                                                <i class="bi bi-check me-1"></i> Listo
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox-fill display-4 d-block mb-3 opacity-50"></i>
+                                    No hay activaciones pendientes.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@if (isModalOpen && selectedActivation != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark">
+                        <i class="bi bi-lightning-charge text-warning me-2"></i> Marcar como Activado
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <p class="text-muted mb-4">
+                        Estás a punto de activar el producto <strong>@selectedActivation.ProductName</strong>.
+                    </p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark">Fecha real de activación</label>
+                        <input type="date" class="form-control form-control-lg" @bind="actualDate" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="CloseModal">Cancelar</button>
+                    <button type="button" class="btn btn-success rounded-pill px-4" @onclick="ConfirmActivation" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        }
+                        Confirmar Activación
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ProviderDto> providers = new();
+    private List<ProductActivationTrackingDto> activations = new();
+    
+    private string selectedProviderIdStr = "0";
+    private bool isLoading = true;
+
+    // Modal state
+    private bool isModalOpen = false;
+    private bool isSubmitting = false;
+    private ProductActivationTrackingDto? selectedActivation;
+    private DateTime? actualDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        providers = await ActivationService.GetProvidersAsync();
+        if (providers.Any())
+        {
+            selectedProviderIdStr = providers.First().IdProvider.ToString();
+        }
+        await LoadActivations();
+    }
+
+
+
+    private async Task LoadActivations()
+    {
+        isLoading = true;
+        StateHasChanged();
+        
+        long providerId = long.TryParse(selectedProviderIdStr, out var p) ? p : 0;
+        activations = await ActivationService.GetPendingActivationsAsync(providerId);
+        
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private void OpenActivationModal(ProductActivationTrackingDto act)
+    {
+        selectedActivation = act;
+        actualDate = DateTime.Today;
+        isModalOpen = true;
+    }
+
+    private void CloseModal()
+    {
+        isModalOpen = false;
+        selectedActivation = null;
+    }
+
+    private async Task ConfirmActivation()
+    {
+        if (selectedActivation == null) return;
+        
+        isSubmitting = true;
+        
+        var request = new UpdateActivationRequestDto
+        {
+            Status = "ACTIVE",
+            ActualDate = actualDate
+        };
+
+        bool success = await ActivationService.UpdateActivationAsync(selectedActivation.IdTracking, request);
+        
+        isSubmitting = false;
+        
+        if (success)
+        {
+            CloseModal();
+            await LoadActivations(); // Recargar la lista
+        }
+        else
+        {
+            // Manejar error
+            Console.WriteLine("Error al activar el producto.");
+        }
+    }
+}

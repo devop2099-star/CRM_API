@@ -18,5 +18,6 @@ builder.Services.AddSingleton<AuthenticationStateProvider, PersistentAuthenticat
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.NotificationService>();
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.IKbService, CRM.WebFrontend.Client.Services.KbService>();
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.ICommissionService, CRM.WebFrontend.Client.Services.CommissionService>();
+builder.Services.AddScoped<CRM.WebFrontend.Client.Services.IActivationService, CRM.WebFrontend.Client.Services.ActivationService>();
 
 await builder.Build().RunAsync();
