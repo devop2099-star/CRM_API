@@ -80,7 +80,13 @@ public class ActivationController : ControllerBase
                 return BadRequest(new { message = "El estado de activación es requerido." });
             }
 
-            var success = await _updateActivationUseCase.ExecuteAsync(idItem, dto.Status, dto.ActualDate, ct);
+            var actualDate = dto.ActualDate;
+            if (actualDate.HasValue && actualDate.Value.Kind == DateTimeKind.Utc)
+            {
+                actualDate = DateTime.SpecifyKind(actualDate.Value, DateTimeKind.Unspecified);
+            }
+
+            var success = await _updateActivationUseCase.ExecuteAsync(idItem, dto.Status, actualDate, ct);
             if (!success)
             {
                 return NotFound(new { message = $"No se encontró el registro de activación con ID {idItem}." });
@@ -90,6 +96,7 @@ public class ActivationController : ControllerBase
         }
         catch (Exception ex)
         {
+            Console.WriteLine("Exception in UpdateActivation: " + ex.ToString());
             return StatusCode(500, new { message = "Error al actualizar la activación.", details = ex.Message });
         }
     }
