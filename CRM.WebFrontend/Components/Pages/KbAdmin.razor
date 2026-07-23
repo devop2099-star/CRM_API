@@ -1,4 +1,5 @@
 @page "/admin/kb"
+@page "/admin"
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "COORDINADOR,ADMIN_CRM")]
 @using Microsoft.AspNetCore.Authorization
@@ -459,11 +460,11 @@
                     
                     <div class="d-flex flex-column gap-3 mt-3">
                         <div class="p-3 border rounded cursor-pointer" style="background: #fafafa;" @onclick='() => SaveWithVersionUpdate("minor")'>
-                            <div class="fw-bold text-dark mb-1">Incremento Menor (v@(CurrentArticle.Version) → v@GetIncrementedVersion("minor"))</div>
+                            <div class="fw-bold text-dark mb-1">Incremento Menor (v@(CurrentArticle.Version) → v@(GetIncrementedVersion("minor")))</div>
                             <span class="text-muted" style="font-size: 0.8rem;">Úsalo para correcciones de redacción, pequeños detalles o fe de erratas.</span>
                         </div>
                         <div class="p-3 border rounded cursor-pointer" style="background: #fafafa;" @onclick='() => SaveWithVersionUpdate("major")'>
-                            <div class="fw-bold text-dark mb-1">Incremento Mayor (v@(CurrentArticle.Version) → v@GetIncrementedVersion("major"))</div>
+                            <div class="fw-bold text-dark mb-1">Incremento Mayor (v@(CurrentArticle.Version) → v@(GetIncrementedVersion("major")))</div>
                             <span class="text-muted" style="font-size: 0.8rem;">Úsalo cuando se actualice la política central, nuevas ofertas o procesos modificados.</span>
                         </div>
                         <div class="p-3 border rounded cursor-pointer" style="background: #fafafa;" @onclick='() => SaveWithVersionUpdate("keep")'>
