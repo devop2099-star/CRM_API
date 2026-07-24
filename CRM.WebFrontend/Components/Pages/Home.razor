@@ -18,7 +18,11 @@
 
         if (user.Identity?.IsAuthenticated == true)
         {
-            if (user.IsInRole("SUPERVISOR"))
+            if (user.IsInRole("ADMIN_CRM") || user.IsInRole("COORDINADOR"))
+            {
+                Navigation.NavigateTo("/admin/maintenance");
+            }
+            else if (user.IsInRole("SUPERVISOR"))
             {
                 Navigation.NavigateTo("/supervisor");
             }
