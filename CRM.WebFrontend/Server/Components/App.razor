@@ -21,22 +21,22 @@
     
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
 <body>
-    <Routes />
+    <Routes @rendermode="InteractiveServer" />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script>
         document.addEventListener("click", function(e) {
-            var toggleBtn = e.target.closest("#menu-toggle");
-            if(toggleBtn) {
+            var logoBtn = e.target.closest(".logo-g");
+            if (logoBtn) {
                 e.preventDefault();
-                var wrapper = document.getElementById("wrapper");
-                if(wrapper) {
-                    wrapper.classList.toggle("collapsed");
+                var sidebar = document.querySelector(".custom-sidebar");
+                if (sidebar) {
+                    sidebar.classList.toggle("expanded");
                 }
             }
         });

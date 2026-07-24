@@ -1,28 +1,29 @@
 :root {
-    --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --bg-app: #EAEAED; /* Light Gray Dashboard Background */
+    --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --bg-app: #F4F6F9; /* Soft Light Gray Content Background for shadow contrast */
     --surface: #FFFFFF; /* Pure White Card Surface */
-    --primary: #1C1E21; /* Dark Charcoal Principal */
-    --primary-hover: #343A40;
-    --border-color: rgba(220, 224, 228, 0.7); /* Subtle border color */
-    --text-main: #1C1E21;
-    --text-muted: #5E6973; /* Slate secondary text */
+    --primary: #003B5C; /* Deep Corporate Navy */
+    --primary-hover: #005F8D; /* Ocean Blue */
+    --secondary: #005F8D;
+    --border-color: transparent; /* No visible border for containers */
+    --text-main: #1D1F21; /* Charcoal Dark Slate */
+    --text-muted: #6B7280; /* Muted Slate */
     
-    /* Neon accents from the exportado design */
-    --neon: #D4F953;
-    --neon-hover: #C2E842;
-    --sidebar-bg: #F4F5F6; /* Light gray sidebar background */
-    --sidebar-color: #1C1E21;
+    /* New Palette Accents */
+    --neon: #E1F5FE; /* Soft Cyan Ice active state */
+    --neon-hover: #B3E5FC;
+    --sidebar-bg: #FFFFFF; /* White sidebar background */
+    --sidebar-color: #1D1F21;
     
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
-    --shadow-card: 0 10px 40px -10px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.02);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --shadow-card: 0 6px 20px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.02);
     
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
-    --radius-xl: 24px;
+    --radius-xl: 20px;
     --radius-pill: 50px;
 }
 
@@ -381,9 +382,12 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
     padding-bottom: 10px !important;
 }
 
-/* Sidebar Nav Links tweaks for the new markup */
+/* Sidebar Nav Links tweaks: Hidden by default (contracted), shown when expanded */
 .custom-sidebar .nav-link-text {
-    display: none !important;
+    display: none;
+}
+.custom-sidebar.expanded .nav-link-text {
+    display: inline-block !important;
 }
 
 .custom-sidebar .menu-item {
@@ -404,4 +408,126 @@ p, .lead { font-size: 0.8rem; color: var(--text-muted); }
 
 .top-navigation {
     padding-top: 15px !important;
+}
+
+/* Universal Borderless & Soft Drop-Shadow for ALL Containers (More rounded: 20px) */
+.card,
+.panel,
+.modal-content,
+.data-card,
+.queue-item,
+.doc-viewer,
+.alert-panel,
+.premium-card,
+.premium-panel,
+.activation-card,
+.report-card,
+.zd-container,
+.zd-card,
+.kanban-card,
+.kanban-column,
+.stat-card,
+.content-card,
+.info-box,
+.table-responsive,
+.filter-card,
+.form-card,
+.search-card,
+.detail-card,
+[class*="-card"],
+[class*="-panel"] {
+    border: none !important;
+    border-radius: 20px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Remove hard outline borders from Bootstrap rounded utility boxes */
+.border, .border-top, .border-bottom, .border-start, .border-end {
+    border-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Floating Pill Search Input */
+.search-pill-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.search-pill-input {
+    width: 100%;
+    padding: 11px 50px 11px 22px;
+    border-radius: 50px !important;
+    border: none !important;
+    background-color: #FFFFFF !important;
+    color: var(--text-main) !important;
+    font-size: 0.875rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05), 0 1px 4px rgba(0, 0, 0, 0.02) !important;
+    outline: none !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.search-pill-input:focus {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.09) !important;
+}
+
+/* Standalone Borderless Search Icon Button */
+.search-icon-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3D3D3D;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease, background-color 0.2s ease;
+}
+
+.search-icon-btn:hover {
+    color: #000000;
+    background-color: rgba(0, 0, 0, 0.05) !important;
+    transform: translateY(-50%) scale(1.12);
+}
+
+.search-icon-btn:active {
+    transform: translateY(-50%) scale(0.88) rotate(-15deg);
+}
+
+/* Spinner Animation for Loading State */
+@keyframes spin-loader {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spin-icon {
+    animation: spin-loader 0.8s linear infinite;
+    color: #10b981 !important;
+}
+
+/* Free-floating Filter Select Pills */
+.filter-pill-select {
+    border-radius: 50px !important;
+    border: none !important;
+    background-color: #FFFFFF !important;
+    padding: 10px 20px !important;
+    font-size: 0.85rem !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05), 0 1px 4px rgba(0, 0, 0, 0.02) !important;
+    color: var(--text-main) !important;
+    outline: none !important;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.filter-pill-select:focus {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.09) !important;
 }
