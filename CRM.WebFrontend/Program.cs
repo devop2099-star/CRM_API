@@ -66,7 +66,11 @@ builder.Services.AddReverseProxy()
 builder.Services.AddScoped<IBackofficeService, BackofficeService>();
 builder.Services.AddScoped<ISalesOrderService, SalesOrderService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IActivationService, ActivationService>();
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.NotificationService>();
+
+
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.IKbService, CRM.WebFrontend.Client.Services.KbService>();
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.ICommissionService, CRM.WebFrontend.Client.Services.CommissionService>();
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.IActivationService, CRM.WebFrontend.Client.Services.ActivationService>();
@@ -181,20 +185,8 @@ app.MapPost("/login-endpoint", async (HttpContext httpContext, IHttpClientFactor
 
         await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
-        // Redirect based on role
-        if (role.Equals("SUPERVISOR", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.Redirect("/supervisor");
-        }
-        if (role.Equals("BACKOFFICE", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.Redirect("/backoffice/dashboard");
-        }
-        if (role.Equals("ADMIN_CRM", StringComparison.OrdinalIgnoreCase) || role.Equals("COORDINADOR", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.Redirect("/admin/maintenance");
-        }
-        return Results.Redirect("/asesor");
+        // Redirect to root so Home.razor handles role-based routing
+        return Results.Redirect("/");
     }
     catch (Exception ex)
     {
