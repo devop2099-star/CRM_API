@@ -14,32 +14,43 @@
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     <MudText Typo="Typo.h3" Align="Align.Center" Class="mb-8 fw-bold">Portal de Base de Conocimientos</MudText>
 
-    <!-- Search Bar -->
-    <MudPaper Elevation="3" Class="pa-6 mb-8" Style="border-radius: 12px;">
-        <MudTextField Value="searchQuery" 
-                      ValueChanged="EventCallback.Factory.Create<string>(this, OnSearchQueryChanged)"
-                      Placeholder="Busca artículos, procedimientos, scripts..."
-                      Adornment="Adornment.Start" 
-                      AdornmentIcon="@Icons.Material.Filled.Search" 
-                      IconSize="Size.Large"
-                      OnKeyDown="@HandleSearch"
-                      Immediate="true"
-                      Variant="Variant.Outlined" 
-                      Margin="Margin.Dense"
-                      Clearable="true"
-                      Class="kb-search-bar" />
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4 w-100" OnClick="@(async () => await PerformSearch())">Buscar</MudButton>
-    </MudPaper>
+    <!-- Search Bar (Suelto sobre el fondo con botón minimalista animado) -->
+    <div class="d-flex justify-content-center mb-8">
+        <div class="search-pill-container" style="max-width: 680px;">
+            <input type="text" 
+                   class="search-pill-input" 
+                   value="@searchQuery"
+                   @oninput="@((e) => OnSearchQueryChanged(e.Value?.ToString() ?? ""))"
+                   @onkeyup="@HandleSearch"
+                   placeholder="Busca artículos, procedimientos, scripts..." />
+            
+            <button class="search-icon-btn @(isSearching ? "is-loading" : "")" 
+                    title="Buscar" 
+                    @onclick="@(async () => await PerformSearch())"
+                    disabled="@isSearching">
+                @if (isSearching)
+                {
+                    <svg class="spin-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+                }
+                else
+                {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                }
+            </button>
+        </div>
+    </div>
 
     <!-- Recent Searches -->
     @if (recentSearches.Any() && !isSearching && string.IsNullOrWhiteSpace(searchQuery))
     {
-        <div class="mb-8">
-            <MudText Typo="Typo.subtitle1" Class="mb-2 fw-bold text-muted">Búsquedas recientes</MudText>
-            <div class="d-flex gap-2 flex-wrap">
+        <div class="mb-8 text-center">
+            <span class="fw-bold text-muted me-2" style="font-size: 0.85rem;">Búsquedas recientes:</span>
+            <div class="d-inline-flex gap-2 flex-wrap justify-content-center">
                 @foreach (var search in recentSearches)
                 {
-                    <MudChip T="string" Icon="@Icons.Material.Filled.History" OnClick="@(async () => await ExecuteRecentSearch(search))">@search</MudChip>
+                    <span class="badge rounded-pill bg-white text-dark shadow-sm px-3 py-2 cursor-pointer border-0" @onclick="@(async () => await ExecuteRecentSearch(search))" style="font-weight: 500; font-size: 0.8rem; transition: all 0.2s;">
+                        🕒 @search
+                    </span>
                 }
             </div>
         </div>
@@ -48,17 +59,17 @@
     <!-- Categories Grid (Only show when not searching) -->
     @if (!hasSearched)
     {
-        <MudGrid Spacing="3">
+        <MudGrid Spacing="4">
             @foreach (var cat in categories)
             {
                 <MudItem xs="12" sm="6" md="3">
-                    <MudCard Class="category-card cursor-pointer" @onclick="@(async () => await FilterByCategory(cat.Type))">
-                        <MudCardContent Class="d-flex flex-column align-items-center text-center">
-                            <MudIcon Icon="@cat.Icon" Size="Size.Large" Color="Color.Primary" Class="mb-4" />
-                            <MudText Typo="Typo.h6">@cat.Name</MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">@cat.Description</MudText>
-                        </MudCardContent>
-                    </MudCard>
+                    <div class="category-card cursor-pointer p-4 d-flex flex-column align-items-center text-center h-100" @onclick="@(async () => await FilterByCategory(cat.Type))">
+                        <div class="category-icon-wrapper mb-3">
+                            <MudIcon Icon="@cat.Icon" Size="Size.Large" Color="Color.Primary" />
+                        </div>
+                        <h6 class="fw-bold mb-1" style="font-size: 1.05rem; color: #1F2937;">@cat.Name</h6>
+                        <p class="text-muted mb-0" style="font-size: 0.825rem; line-height: 1.35;">@cat.Description</p>
+                    </div>
                 </MudItem>
             }
         </MudGrid>
@@ -67,8 +78,9 @@
     <!-- Search Results -->
     @if (isSearching)
     {
-        <div class="d-flex justify-content-center my-8">
-            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <div class="d-flex flex-column align-items-center justify-content-center my-8 py-5">
+            <svg class="spin-icon mb-3" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg>
+            <span class="text-muted fw-semibold">Buscando en la base de conocimientos...</span>
         </div>
     }
     else if (hasSearched)
@@ -77,27 +89,25 @@
         
         @if (searchResults.Count == 0)
         {
-            <MudAlert Severity="Severity.Info">No se encontraron artículos que coincidan con tu búsqueda.</MudAlert>
+            <MudAlert Severity="Severity.Info" Class="rounded-4 border-0 shadow-sm">No se encontraron artículos que coincidan con tu búsqueda.</MudAlert>
         }
         else
         {
-            <MudGrid Spacing="2">
+            <MudGrid Spacing="3">
                 @foreach (var article in searchResults)
                 {
                     <MudItem xs="12">
-                        <MudCard Class="cursor-pointer hover-card" @onclick="@( () => NavigateToArticle(article.IdArticle) )">
-                            <MudCardContent>
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <MudText Typo="Typo.h6" Color="Color.Primary">@article.Title</MudText>
-                                    <MudChip T="string" Size="Size.Small" Color="GetChipColor(article.ContentType)">@article.ContentType</MudChip>
-                                </div>
-                                <MudText Typo="Typo.body2" Class="text-muted">@article.Summary</MudText>
-                                <div class="d-flex gap-4 mt-3 text-muted" style="font-size: 0.85rem;">
-                                    <span><MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Class="mr-1" style="vertical-align: sub;"/> @article.ViewCount vistas</span>
-                                    <span><MudIcon Icon="@Icons.Material.Filled.ThumbUp" Size="Size.Small" Class="mr-1" style="vertical-align: sub;"/> @article.HelpfulCount útiles</span>
-                                </div>
-                            </MudCardContent>
-                        </MudCard>
+                        <div class="category-card cursor-pointer p-4" @onclick="@( () => NavigateToArticle(article.IdArticle) )">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="fw-bold mb-0" style="color: #1F2937; font-size: 1.05rem;">@article.Title</h6>
+                                <MudChip T="string" Size="Size.Small" Color="GetChipColor(article.ContentType)" Class="border-0 shadow-none">@article.ContentType</MudChip>
+                            </div>
+                            <p class="text-muted mb-3" style="font-size: 0.875rem;">@article.Summary</p>
+                            <div class="d-flex gap-4 text-muted" style="font-size: 0.8rem;">
+                                <span><MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Class="mr-1" style="vertical-align: sub;"/> @article.ViewCount vistas</span>
+                                <span><MudIcon Icon="@Icons.Material.Filled.ThumbUp" Size="Size.Small" Class="mr-1" style="vertical-align: sub;"/> @article.HelpfulCount útiles</span>
+                            </div>
+                        </div>
                     </MudItem>
                 }
             </MudGrid>
@@ -106,14 +116,30 @@
 </MudContainer>
 
 <style>
-    .category-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-        transition: all 0.3s ease;
+    .category-card {
+        background: #FFFFFF !important;
+        border-radius: 24px !important;
+        border: none !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
-    .hover-card:hover {
-        background-color: #f8f9fa;
-        transition: background-color 0.2s ease;
+    .category-card:hover {
+        transform: translateY(-6px) !important;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+    }
+    .category-icon-wrapper {
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        background: #F4F5F7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.25s ease;
+    }
+    .category-card:hover .category-icon-wrapper {
+        transform: scale(1.1);
+        background: #E0F2F1;
     }
 </style>
 

@@ -184,16 +184,8 @@ app.MapPost("/login-endpoint", async (HttpContext httpContext, IHttpClientFactor
 
         await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
-        // Redirect based on role
-        if (role.Equals("SUPERVISOR", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.Redirect("/supervisor");
-        }
-        if (role.Equals("BACKOFFICE", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.Redirect("/backoffice/dashboard");
-        }
-        return Results.Redirect("/asesor");
+        // Redirect to root so Home.razor handles role-based routing
+        return Results.Redirect("/");
     }
     catch (Exception ex)
     {

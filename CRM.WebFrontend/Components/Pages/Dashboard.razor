@@ -29,8 +29,8 @@
     .premium-panel {
         background: var(--surface);
         border-radius: var(--radius-lg);
-        border: 1px solid var(--border-color);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.01);
+        border: none;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.02);
     }
 
     /* Tipografía refinada */
@@ -58,21 +58,23 @@
     /* Lista de cola (Queue) */
     .queue-item {
         background: var(--surface);
-        border: 1px solid transparent;
+        border: none;
         border-radius: var(--radius-md);
         padding: 16px;
         cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
         transition: all 0.2s ease;
     }
     
     .queue-item:hover {
         background: #fafafa;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
     }
 
     .queue-item.active {
         background: var(--surface);
-        border-color: var(--text-main);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border: none;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.09);
     }
 
     /* Badges minimalistas */
@@ -89,7 +91,8 @@
     /* Visor de DNI */
     .doc-viewer {
         background: #f8fafc;
-        border: 1px solid var(--border-color);
+        border: none;
+        box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
         border-radius: var(--radius-md);
         height: 320px;
         display: flex;
@@ -99,8 +102,9 @@
     }
 
     .data-card {
-        background: #fafafa;
-        border: 1px solid var(--border-color);
+        background: #FFFFFF;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
         border-radius: var(--radius-md);
         padding: 16px;
     }
