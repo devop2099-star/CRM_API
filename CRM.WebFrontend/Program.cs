@@ -70,6 +70,7 @@ builder.Services.AddScoped<CRM.WebFrontend.Client.Services.NotificationService>(
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.IKbService, CRM.WebFrontend.Client.Services.KbService>();
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.ICommissionService, CRM.WebFrontend.Client.Services.CommissionService>();
 builder.Services.AddScoped<CRM.WebFrontend.Client.Services.IActivationService, CRM.WebFrontend.Client.Services.ActivationService>();
+builder.Services.AddScoped<CRM.WebFrontend.Client.Services.IMaintenanceService, CRM.WebFrontend.Client.Services.MaintenanceService>();
 // Agregar servicios de MudBlazor
 builder.Services.AddMudServices();
 var app = builder.Build();
@@ -188,6 +189,10 @@ app.MapPost("/login-endpoint", async (HttpContext httpContext, IHttpClientFactor
         if (role.Equals("BACKOFFICE", StringComparison.OrdinalIgnoreCase))
         {
             return Results.Redirect("/backoffice/dashboard");
+        }
+        if (role.Equals("ADMIN_CRM", StringComparison.OrdinalIgnoreCase) || role.Equals("COORDINADOR", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.Redirect("/admin/maintenance");
         }
         return Results.Redirect("/asesor");
     }
